@@ -1,0 +1,47 @@
+{
+  "name": "pi-acp",
+  "version": "0.1.0",
+  "description": "ACP (Agent Client Protocol) agent transport for pi coding agent",
+  "type": "module",
+  "bin": {
+    "pi-acp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node --import tsx src/index.ts",
+    "dev": "node --watch --import tsx src/index.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "tsc --noEmit && eslint . && vitest run"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.21.0",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "@vitest/coverage-v8": "^4.1.6",
+    "eslint": "^9.39.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^18.0.1",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.59.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.6"
+  },
+  "keywords": [
+    "pi-package",
+    "acp",
+    "agent-client-protocol"
+  ],
+  "license": "MIT"
+}

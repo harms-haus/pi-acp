@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+ACP_PROTOCOL_INVENTORY.md
+CODEBASE_ASSESSMENT.md
+EFFICIENCY_REVIEW.md
+SECURITY_REVIEW.md
+RESEARCH*.md
