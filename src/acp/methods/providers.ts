@@ -14,6 +14,7 @@ export async function handleProvidersList(
 }
 
 // providers/set (UNSTABLE)
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleProvidersSet(
   _params: Record<string, unknown> | undefined,
 ): Promise<SetProvidersResponse> {
@@ -21,6 +22,7 @@ export async function handleProvidersSet(
 }
 
 // providers/disable (UNSTABLE)
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleProvidersDisable(
   _params: Record<string, unknown> | undefined,
 ): Promise<DisableProvidersResponse> {

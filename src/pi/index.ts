@@ -3,7 +3,6 @@ export {
   registerSession,
   getSession,
   removeSession,
-  hasSession,
   listSessions,
   setTurnId,
   getTurnId,
@@ -15,9 +14,4 @@ export {
 } from "./session-registry.js";
 export { handlePiEvent, cleanupSession } from "./event-translator.js";
 export { createAcpSession } from "./sdk-factory.js";
-export {
-  acpExtensionFactory,
-  resolvePermission,
-  cancelAllPermissions,
-  requestPermissionFromClient,
-} from "./acp-extension.js";
+export { acpExtensionFactory, cancelAllPermissions } from "./acp-extension.js";

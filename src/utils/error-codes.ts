@@ -29,19 +29,33 @@ export function makeParseError(data?: unknown): JsonRpcErrorResponse {
   return makeErrorResponse(null, ACP_ERROR_CODES.PARSE_ERROR, "Parse error", data);
 }
 
-export function makeInvalidRequestError(message = "Invalid Request", data?: unknown): JsonRpcErrorResponse {
+export function makeInvalidRequestError(
+  message = "Invalid Request",
+  data?: unknown,
+): JsonRpcErrorResponse {
   return makeErrorResponse(null, ACP_ERROR_CODES.INVALID_REQUEST, message, data);
 }
 
 export function makeMethodNotFoundError(method: string, data?: unknown): JsonRpcErrorResponse {
-  return makeErrorResponse(null, ACP_ERROR_CODES.METHOD_NOT_FOUND, `Method not found: ${method}`, data);
+  return makeErrorResponse(
+    null,
+    ACP_ERROR_CODES.METHOD_NOT_FOUND,
+    `Method not found: ${method}`,
+    data,
+  );
 }
 
-export function makeInvalidParamsError(message = "Invalid params", data?: unknown): JsonRpcErrorResponse {
+export function makeInvalidParamsError(
+  message = "Invalid params",
+  data?: unknown,
+): JsonRpcErrorResponse {
   return makeErrorResponse(null, ACP_ERROR_CODES.INVALID_PARAMS, message, data);
 }
 
-export function makeInternalError(message = "Internal error", data?: unknown): JsonRpcErrorResponse {
+export function makeInternalError(
+  message = "Internal error",
+  data?: unknown,
+): JsonRpcErrorResponse {
   return makeErrorResponse(null, ACP_ERROR_CODES.INTERNAL_ERROR, message, data);
 }
 
@@ -49,7 +63,10 @@ export function makeAuthRequiredError(data?: unknown): JsonRpcErrorResponse {
   return makeErrorResponse(null, ACP_ERROR_CODES.AUTH_REQUIRED, "Authentication required", data);
 }
 
-export function makeResourceNotFoundError(message = "Resource not found", data?: unknown): JsonRpcErrorResponse {
+export function makeResourceNotFoundError(
+  message = "Resource not found",
+  data?: unknown,
+): JsonRpcErrorResponse {
   return makeErrorResponse(null, ACP_ERROR_CODES.RESOURCE_NOT_FOUND, message, data);
 }
 

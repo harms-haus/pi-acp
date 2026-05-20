@@ -14,7 +14,8 @@ export async function handleSessionList(
 
   // Also list persisted sessions from the session directory
   const cwd = req.cwd ?? process.cwd();
-  let persistedSessions: { sessionId: string; cwd: string; title?: string; updatedAt?: string }[] = [];
+  let persistedSessions: { sessionId: string; cwd: string; title?: string; updatedAt?: string }[] =
+    [];
 
   try {
     const smSessions = await SessionManager.list(cwd);

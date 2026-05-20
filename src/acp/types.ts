@@ -416,15 +416,6 @@ export { PROTOCOL_VERSION, RequestError, SDK_AGENT_METHODS, SDK_CLIENT_METHODS }
 
 // ─── Local Type Definitions (not in SDK) ─────────────────────────────────────
 
-// TerminalId is not exported by SDK, define locally
-export type TerminalId = string;
-
-// Meta type for backward compatibility
-export type Meta = Record<string, unknown> | null;
-
-// ToolKind with our custom "create" extension
-export type ToolKindExtended = ToolKind | "create";
-
 // JSON-RPC 2.0 Envelope types (not exported by SDK, needed for transport layer)
 export interface JsonRpcRequest {
   jsonrpc: "2.0";
@@ -459,78 +450,6 @@ export interface JsonRpcNotification {
 
 export type JsonRpcIncoming = JsonRpcRequest | JsonRpcNotification;
 export type JsonRpcOutgoing = JsonRpcResponse | JsonRpcErrorResponse | JsonRpcNotification;
-
-// Session update discriminator types for backward compatibility with existing code
-// These use our custom discriminators, not the SDK's
-export interface AgentMessageChunkUpdate {
-  sessionUpdate: "agent_message_chunk";
-  content: ContentChunk;
-}
-
-export interface UserMessageChunkUpdate {
-  sessionUpdate: "user_message_chunk";
-  content: ContentChunk;
-}
-
-// Note: We use "agent_thinking_chunk" for backward compatibility but SDK uses "agent_thought_chunk"
-export interface AgentThoughtChunkUpdate {
-  sessionUpdate: "agent_thinking_chunk";
-  content: ContentChunk;
-}
-
-export interface ToolCallSessionUpdate {
-  sessionUpdate: "tool_call";
-  toolCall: ToolCall;
-}
-
-export interface ToolCallUpdateSessionUpdate {
-  sessionUpdate: "tool_call_update";
-  toolCall: ToolCallUpdate;
-}
-
-export interface PlanSessionUpdate {
-  sessionUpdate: "plan";
-  plan: Plan;
-}
-
-export interface AvailableCommandsSessionUpdate {
-  sessionUpdate: "available_commands_update";
-  availableCommands: AvailableCommandsUpdate;
-}
-
-export interface CurrentModeSessionUpdate {
-  sessionUpdate: "current_mode_update";
-  currentMode: CurrentModeUpdate;
-}
-
-export interface ConfigOptionSessionUpdate {
-  sessionUpdate: "config_option_update";
-  configOptions: ConfigOptionUpdate;
-}
-
-export interface SessionInfoSessionUpdate {
-  sessionUpdate: "session_info_update";
-  info: SessionInfoUpdate;
-}
-
-export interface UsageSessionUpdate {
-  sessionUpdate: "usage_update";
-  usage: UsageUpdate;
-}
-
-// Union type for all session updates (our extended version)
-export type SessionUpdateExtended =
-  | AgentMessageChunkUpdate
-  | UserMessageChunkUpdate
-  | AgentThoughtChunkUpdate
-  | ToolCallSessionUpdate
-  | ToolCallUpdateSessionUpdate
-  | PlanSessionUpdate
-  | AvailableCommandsSessionUpdate
-  | CurrentModeSessionUpdate
-  | ConfigOptionSessionUpdate
-  | SessionInfoSessionUpdate
-  | UsageSessionUpdate;
 
 // ─── Compatibility Constants ─────────────────────────────────────────────────
 

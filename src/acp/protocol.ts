@@ -85,7 +85,12 @@ export function handleClientResponse(id: number | string, result: unknown): void
 }
 
 /** Reject a pending client response with an error. */
-export function handleClientError(id: number | string, code: number, message: string, data?: unknown): void {
+export function handleClientError(
+  id: number | string,
+  code: number,
+  message: string,
+  data?: unknown,
+): void {
   const pending = pendingClientRequests.get(id);
   if (pending) {
     clearTimeout(pending.timer);
@@ -111,51 +116,63 @@ export function registerHandler(method: string, handler: MethodHandler): void {
   handlers.set(method, handler);
 }
 
-/** Process an incoming JSON-RPC message. */
-export async function processMessage(raw: string): Promise<void> {
-  let msg: JsonRpcIncoming;
+/** Parse a raw JSON-RPC string into a typed message, or return null on parse/validate error. */
+function parseJsonRpc(raw: string): JsonRpcIncoming | null {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (typeof parsed.jsonrpc !== "string" || parsed.jsonrpc !== "2.0") {
       writeError(null, -32600, "Invalid Request", { raw });
-      return;
+      return null;
     }
-    msg = parsed as unknown as JsonRpcIncoming;
+    return parsed as unknown as JsonRpcIncoming;
   } catch {
     writeError(null, -32700, "Parse error", { raw });
-    return;
+    return null;
   }
+}
 
-  // If it's a response to a client-side request we sent
-  if ("result" in msg && "id" in msg && !("method" in msg)) {
+/** Check if an incoming message is a response to one of our client requests and handle it. */
+function tryHandleIncomingResponse(msg: JsonRpcIncoming): boolean {
+  if (!("id" in msg) || "method" in msg) return false;
+
+  if ("result" in msg) {
     const resp = msg as JsonRpcResponseMessage;
     handleClientResponse(resp.id, resp.result);
-    return;
+    return true;
   }
 
-  if ("error" in msg && "id" in msg && !("method" in msg)) {
+  if ("error" in msg) {
     const resp = msg as JsonRpcResponseMessage;
     const errObj = resp.error;
     handleClientError(resp.id, errObj?.code ?? -32603, errObj?.message ?? "Error", errObj?.data);
-    return;
+    return true;
   }
 
+  return false;
+}
+
+/** Process an incoming JSON-RPC message. */
+export async function processMessage(raw: string): Promise<void> {
+  const msg = parseJsonRpc(raw);
+  if (msg === null) return;
+
+  // If it's a response to a client-side request we sent
+  if (tryHandleIncomingResponse(msg)) return;
+
   // Must be a request or notification
-  const incoming = msg;
-  if (!("method" in incoming)) {
+  if (!("method" in msg)) {
     writeError(null, -32600, "Invalid Request");
     return;
   }
 
   // Handle notifications (no id)
-  if (!("id" in incoming)) {
-    await handleNotification(incoming);
+  if (!("id" in msg)) {
+    await handleNotification(msg);
     return;
   }
 
   // Handle requests
-  const request = incoming;
-  await handleRequest(request);
+  await handleRequest(msg);
 }
 
 async function handleNotification(msg: JsonRpcNotification): Promise<void> {
@@ -166,10 +183,12 @@ async function handleNotification(msg: JsonRpcNotification): Promise<void> {
   }
 
   try {
-    await handler(
-      msg.params as Record<string, unknown> | undefined,
-      { jsonrpc: "2.0", id: null, method: msg.method, params: msg.params },
-    );
+    await handler(msg.params as Record<string, unknown> | undefined, {
+      jsonrpc: "2.0",
+      id: null,
+      method: msg.method,
+      params: msg.params,
+    });
   } catch (err) {
     // Notifications don't get error responses, but we log
     console.error(`Notification handler error for ${msg.method}:`, err);
@@ -192,10 +211,7 @@ async function handleRequest(request: JsonRpcRequest): Promise<void> {
   }
 
   try {
-    const result = await handler(
-      params as Record<string, unknown> | undefined,
-      request,
-    );
+    const result = await handler(params as Record<string, unknown> | undefined, request);
     writeResponse(id, result ?? {});
   } catch (err) {
     const error = err as ErrorWithCode;
@@ -207,11 +223,6 @@ async function handleRequest(request: JsonRpcRequest): Promise<void> {
       writeError(id, -32603, "Internal error");
     }
   }
-}
-
-/** Get all registered agent method names. */
-export function getRegisteredMethods(): string[] {
-  return Array.from(handlers.keys());
 }
 
 // Re-export the write functions so method handlers can use them

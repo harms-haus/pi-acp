@@ -2,7 +2,7 @@
 // does NOT advertise the corresponding capabilities.
 import { spawn, type SpawnOptionsWithoutStdio } from "node:child_process";
 
-import { getClientCapabilities } from "../acp/methods/initialize.js";
+import { getClientCapabilities } from "../acp/client-state.js";
 import { sendClientRequest } from "../acp/protocol.js";
 import type {
   CreateTerminalRequest,
@@ -100,6 +100,9 @@ export async function handleTerminalCreate(
       waiter.resolve({ exitCode: code ?? undefined, signal: signal ?? undefined });
     }
     terminal.waitingForExit = [];
+    // Auto-cleanup after exit
+    proc.removeAllListeners();
+    activeTerminals.delete(terminalId);
   });
   proc.on("error", (err) => {
     terminal.exited = true;
@@ -210,5 +213,6 @@ export async function handleTerminalKill(
   if (!terminal.exited) {
     terminal.proc.kill("SIGTERM");
   }
+  activeTerminals.delete(req.terminalId);
   return {};
 }

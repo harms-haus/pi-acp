@@ -1,5 +1,6 @@
 // initialize handler — protocol handshake and capability negotiation.
 import { throwAcpError } from "../../utils/error-codes.js";
+import { setClientCapabilities } from "../client-state.js";
 import {
   AGENT_NAME,
   AGENT_TITLE,
@@ -10,12 +11,9 @@ import {
   type InitializeResponse,
 } from "../types.js";
 
-let _clientCapabilities: InitializeRequest["clientCapabilities"] | null = null;
+export { getClientCapabilities } from "../client-state.js";
 
-export function getClientCapabilities(): InitializeRequest["clientCapabilities"] | null {
-  return _clientCapabilities;
-}
-
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleInitialize(
   params: Record<string, unknown> | undefined,
 ): Promise<InitializeResponse> {
@@ -31,7 +29,7 @@ export async function handleInitialize(
   }
 
   // Store client capabilities for later use
-  _clientCapabilities = req.clientCapabilities;
+  setClientCapabilities(req.clientCapabilities);
 
   // Build agent capabilities — we support all standard baseline + optional features
   const agentCapabilities: AgentCapabilities = {

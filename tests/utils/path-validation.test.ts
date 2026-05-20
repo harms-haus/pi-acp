@@ -27,27 +27,17 @@ describe("resolveAndValidatePath", () => {
 
   it("allows relative paths resolved against cwd even when additionalDirs specified", () => {
     // Relative paths are always resolved against cwd first
-    const result = resolveAndValidatePath(
-      "lib/utils.ts",
-      cwd,
-      ["/home/user/lib"],
-    );
+    const result = resolveAndValidatePath("lib/utils.ts", cwd, ["/home/user/lib"]);
     expect(result).toBe("/home/user/project/lib/utils.ts");
   });
 
   it("allows absolute paths within additionalDirs", () => {
-    const result = resolveAndValidatePath(
-      "/home/user/lib/file.ts",
-      cwd,
-      ["/home/user/lib"],
-    );
+    const result = resolveAndValidatePath("/home/user/lib/file.ts", cwd, ["/home/user/lib"]);
     expect(result).toBe("/home/user/lib/file.ts");
   });
 
   it("rejects path traversal with ..", () => {
-    expect(() => resolveAndValidatePath("../../etc/passwd", cwd)).toThrow(
-      "Path not allowed",
-    );
+    expect(() => resolveAndValidatePath("../../etc/passwd", cwd)).toThrow("Path not allowed");
   });
 
   it("rejects path traversal from subdirectory", () => {
@@ -57,15 +47,13 @@ describe("resolveAndValidatePath", () => {
   });
 
   it("rejects paths outside session scope", () => {
-    expect(() => resolveAndValidatePath("/tmp/malicious.sh", cwd)).toThrow(
-      "Path not allowed",
-    );
+    expect(() => resolveAndValidatePath("/tmp/malicious.sh", cwd)).toThrow("Path not allowed");
   });
 
   it("rejects paths outside additionalDirs scope", () => {
-    expect(() =>
-      resolveAndValidatePath("/other/dir/file.txt", cwd, ["/home/user/lib"])
-    ).toThrow("Path not allowed");
+    expect(() => resolveAndValidatePath("/other/dir/file.txt", cwd, ["/home/user/lib"])).toThrow(
+      "Path not allowed",
+    );
   });
 
   it("handles empty relative path", () => {

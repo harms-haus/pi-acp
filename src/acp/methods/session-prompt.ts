@@ -1,20 +1,22 @@
 // session/prompt handler — THE CORE LOOP.
 // Triggers the pi agent, streams updates, and returns stopReason.
 import { handlePiEvent } from "../../pi/event-translator.js";
-import { getSession, setPromptRequestId, setSessionCancelling, isSessionCancelling } from "../../pi/session-registry.js";
+import {
+  getSession,
+  setPromptRequestId,
+  setSessionCancelling,
+  isSessionCancelling,
+} from "../../pi/session-registry.js";
 import { acpBlocksToPiContent } from "../../utils/content-translation.js";
 import { throwAcpError } from "../../utils/error-codes.js";
+import { requireParams } from "../../utils/param-validation.js";
 import type { PromptRequest, PromptResponse, StopReason } from "../types.js";
 
 export async function handleSessionPrompt(
   params: Record<string, unknown> | undefined,
   request: { id: number | string | null },
 ): Promise<PromptResponse> {
-  if (!params || typeof params !== "object" || !("sessionId" in params) || !("prompt" in params)) {
-    throwAcpError(-32602, "Invalid params: sessionId and prompt are required");
-  }
-
-  const req = params as unknown as PromptRequest;
+  const req = requireParams<PromptRequest>(params, ["sessionId", "prompt"]);
   const entry = getSession(req.sessionId);
   if (!entry) {
     throwAcpError(-32002, `Session not found: ${req.sessionId}`);
@@ -55,19 +57,20 @@ export async function handleSessionPrompt(
  * @param sessionId - The session ID for cancellation checking
  * @returns The stop reason
  */
-function determineStopReason(
+export function determineStopReason(
   state: { errorMessage?: string },
   sessionId: string,
 ): StopReason {
   const errorMessage = state.errorMessage;
+  const lower = errorMessage?.toLowerCase() ?? "";
 
   // Check for refusal
-  if (errorMessage?.toLowerCase().includes("refusal") ?? false) {
+  if (lower.includes("refusal")) {
     return "refusal";
   }
 
-  // Check for max tokens
-  if (errorMessage?.toLowerCase().includes("max_tokens") ?? false) {
+  // Check for max tokens (specific string)
+  if (lower.includes("max_tokens") || lower.includes("maxtokens")) {
     return "max_tokens";
   }
 
@@ -76,8 +79,10 @@ function determineStopReason(
     return "cancelled";
   }
 
-  // Check for max turns
-  if (errorMessage?.toLowerCase().includes("max") ?? false) {
+  // Check for max turns — must be "max_turn" specifically, not just any "max"
+  // NOTE: This string-matching approach is fragile. If the pi SDK adds structured
+  // error codes in the future, this should be updated to use them instead.
+  if (lower.includes("max_turn") || lower.includes("max turn")) {
     return "max_turn_requests";
   }
 

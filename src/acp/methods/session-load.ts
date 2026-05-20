@@ -13,6 +13,8 @@ import { registerSession, getSession } from "../../pi/session-registry.js";
 import { writeNotification } from "../../transport/stdio.js";
 import { piContentToAcpBlocks } from "../../utils/content-translation.js";
 import { throwAcpError } from "../../utils/error-codes.js";
+import { requireParams } from "../../utils/param-validation.js";
+import { resolveAndValidatePath } from "../../utils/path-validation.js";
 import { extractTurnIdFromMessage } from "../../utils/turn-id.js";
 import { CLIENT_METHODS, type LoadSessionRequest, type LoadSessionResponse } from "../types.js";
 
@@ -27,21 +29,20 @@ interface PiMessageEntry {
     role: string;
     content: unknown;
   };
-  toolCalls?: ({
-    id?: string;
-    name?: string;
-    kind?: string;
-  } | string)[];
+  toolCalls?: (
+    | {
+        id?: string;
+        name?: string;
+        kind?: string;
+      }
+    | string
+  )[];
 }
 
 export async function handleSessionLoad(
   params: Record<string, unknown> | undefined,
 ): Promise<LoadSessionResponse> {
-  if (!params || typeof params !== "object" || !("sessionId" in params) || !("cwd" in params)) {
-    throwAcpError(-32602, "Invalid params: sessionId and cwd are required");
-  }
-
-  const req = params as unknown as LoadSessionRequest;
+  const req = requireParams<LoadSessionRequest>(params, ["sessionId", "cwd"]);
 
   // Map ACP sessionId to pi session file
   const existing = getSession(req.sessionId);
@@ -55,7 +56,8 @@ export async function handleSessionLoad(
   // Check if the sessionId looks like a file path (for direct file loading)
   let sessionPath: string | undefined;
   if (req.sessionId.endsWith(".jsonl") || req.sessionId.includes("/")) {
-    sessionPath = req.sessionId;
+    // Validate path is within cwd to prevent arbitrary file read
+    sessionPath = resolveAndValidatePath(req.sessionId, req.cwd);
   }
 
   if (sessionPath === undefined) {
@@ -90,16 +92,13 @@ export async function handleSessionLoad(
   return {};
 }
 
-function replayHistory(
-  sm: SessionManager,
-  sessionId: string,
-): void {
+function replayHistory(sm: SessionManager, sessionId: string): void {
   const entries = sm.getEntries();
 
   for (const entry of entries) {
     if (entry.type !== "message") continue;
 
-    extractTurnIdFromMessage(entry.id); // Extracted but not used in replay
+    void extractTurnIdFromMessage(entry.id);
     const msgEntry = entry as PiMessageEntry;
     const msg = msgEntry.message;
     const role = msg.role;

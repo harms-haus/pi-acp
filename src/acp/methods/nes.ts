@@ -1,12 +1,9 @@
 // nes/* handlers (UNSTABLE) — start, suggest, close
 import { throwAcpError } from "../../utils/error-codes.js";
-import type {
-  StartNesResponse,
-  SuggestNesResponse,
-  CloseNesResponse,
-} from "../types.js";
+import type { StartNesResponse, SuggestNesResponse, CloseNesResponse } from "../types.js";
 
 // nes/start (UNSTABLE)
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleNesStart(
   _params: Record<string, unknown> | undefined,
 ): Promise<StartNesResponse> {
@@ -14,6 +11,7 @@ export async function handleNesStart(
 }
 
 // nes/suggest (UNSTABLE)
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleNesSuggest(
   _params: Record<string, unknown> | undefined,
 ): Promise<SuggestNesResponse> {
@@ -21,6 +19,7 @@ export async function handleNesSuggest(
 }
 
 // nes/close (UNSTABLE)
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleNesClose(
   _params: Record<string, unknown> | undefined,
 ): Promise<CloseNesResponse> {

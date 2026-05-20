@@ -1,5 +1,10 @@
 // Translate between pi SDK content formats and ACP ContentBlock formats.
-import { toSdkToolKind, type ContentBlock, type ToolCallContent, type ToolKind } from "../acp/types.js";
+import {
+  toSdkToolKind,
+  type ContentBlock,
+  type ToolCallContent,
+  type ToolKind,
+} from "../acp/types.js";
 
 /**
  * Interface for tool input with a path property.
@@ -76,6 +81,32 @@ export function kindToTitle(kind: string, input?: unknown): string {
   return kind;
 }
 
+/** Convert a single content item (from an array) to ContentBlock(s). */
+function convertContentItem(item: unknown): ContentBlock[] {
+  if (typeof item === "string") return [{ type: "text", text: item }];
+  if (item === null || item === undefined || typeof item !== "object") return [];
+  const block = item as Record<string, unknown>;
+  switch (block.type) {
+    case "text":
+      return [{ type: "text", text: typeof block.text === "string" ? block.text : "" }];
+    case "image": {
+      const src = block.source as Record<string, unknown> | undefined;
+      if (!src) return [];
+      return [
+        {
+          type: "image",
+          data: typeof src.data === "string" ? src.data : "",
+          mimeType: typeof src.mediaType === "string" ? src.mediaType : "image/png",
+        },
+      ];
+    }
+    case "thinking":
+      return [{ type: "text", text: typeof block.thinking === "string" ? block.thinking : "" }];
+    default:
+      return [{ type: "text", text: JSON.stringify(item) }];
+  }
+}
+
 /** Convert pi message content to ACP ContentBlock[]. */
 export function piContentToAcpBlocks(content: unknown): ContentBlock[] {
   if (typeof content === "string") {
@@ -84,33 +115,7 @@ export function piContentToAcpBlocks(content: unknown): ContentBlock[] {
   if (Array.isArray(content)) {
     const results: ContentBlock[] = [];
     for (const item of content) {
-      if (typeof item === "string") {
-        results.push({ type: "text", text: item });
-        continue;
-      }
-      if (item === null || item === undefined || typeof item !== "object") continue;
-      const block = item as Record<string, unknown>;
-      switch (block.type) {
-        case "text":
-          results.push({ type: "text", text: typeof block.text === "string" ? block.text : "" });
-          break;
-        case "image": {
-          const src = block.source as Record<string, unknown> | undefined;
-          if (!src) break;
-          results.push({
-            type: "image",
-            data: typeof src.data === "string" ? src.data : "",
-            mimeType: typeof src.mediaType === "string" ? src.mediaType : "image/png",
-          });
-          break;
-        }
-        case "thinking":
-          results.push({ type: "text", text: typeof block.thinking === "string" ? block.thinking : "" });
-          break;
-        default:
-          results.push({ type: "text", text: JSON.stringify(item) });
-          break;
-      }
+      results.push(...convertContentItem(item));
     }
     return results;
   }
@@ -120,7 +125,12 @@ export function piContentToAcpBlocks(content: unknown): ContentBlock[] {
 /** Convert ACP ContentBlock[] to pi prompt string or content array. */
 export function acpBlocksToPiContent(
   blocks: ContentBlock[],
-): string | ({ type: string; text?: string } | { type: string; source: { type: string; mediaType: string; data: string } })[] {
+):
+  | string
+  | (
+      | { type: string; text?: string }
+      | { type: string; source: { type: string; mediaType: string; data: string } }
+    )[] {
   const result: Record<string, unknown>[] = [];
   for (const block of blocks) {
     switch (block.type) {
@@ -155,7 +165,10 @@ export function acpBlocksToPiContent(
   if (result.length === 1 && result[0].type === "text") {
     return result[0].text as string;
   }
-  return result as ({ type: string; text?: string } | { type: string; source: { type: string; mediaType: string; data: string } })[];
+  return result as (
+    | { type: string; text?: string }
+    | { type: string; source: { type: string; mediaType: string; data: string } }
+  )[];
 }
 
 /** Convert pi tool result to ACP ToolCallContent[]. */

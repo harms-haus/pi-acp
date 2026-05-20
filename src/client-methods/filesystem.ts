@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync, mkdirSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { getClientCapabilities } from "../acp/methods/initialize.js";
+import { getClientCapabilities } from "../acp/client-state.js";
 import { sendClientRequest } from "../acp/protocol.js";
 import type {
   ReadTextFileRequest,
@@ -64,6 +64,23 @@ export async function handleFsWriteTextFile(
   const cwd = session?.cwd ?? process.cwd();
   // Validate and resolve path
   const safePath = resolveAndValidatePath(req.path, cwd);
+  // Check for symlink escape (same as read handler)
+  const parentDir = dirname(safePath);
+  try {
+    const realParent = realpathSync(parentDir);
+    const realCwd = realpathSync(cwd);
+    if (!realParent.startsWith(realCwd + "/") && realParent !== realCwd) {
+      throwAcpError(-32002, `Path escapes session directory: ${req.path}`);
+    }
+  } catch (err: unknown) {
+    // If parent doesn't exist yet, check further up
+    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      // Parent dir doesn't exist yet — resolveAndValidatePath already ensures lexical safety
+      // The mkdir will create it within bounds
+    } else {
+      throw err;
+    }
+  }
   // Ensure parent directory exists
   mkdirSync(dirname(safePath), { recursive: true });
   writeFileSync(safePath, req.content, "utf-8");

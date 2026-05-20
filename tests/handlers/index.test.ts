@@ -7,7 +7,6 @@ vi.mock("../../src/pi/session-registry.js", () => ({
   removeSession: vi.fn(),
   listSessions: vi.fn(() => []),
   setSessionCancelling: vi.fn(),
-  hasSession: vi.fn(),
 }));
 
 vi.mock("../../src/pi/sdk-factory.js", () => ({
@@ -37,7 +36,7 @@ import { handleInitialize, getClientCapabilities } from "../../src/acp/methods/i
 import { handleSessionClose } from "../../src/acp/methods/session-close.js";
 import { handleSessionList } from "../../src/acp/methods/session-list.js";
 import { handleSessionNew } from "../../src/acp/methods/session-new.js";
-import { handleSessionSetConfigOption, getSessionConfigOptions } from "../../src/acp/methods/session-set-config.js";
+import { handleSessionSetConfigOption } from "../../src/acp/methods/session-set-config.js";
 import { handleSessionSetMode } from "../../src/acp/methods/session-set-mode.js";
 import { getSession } from "../../src/pi/session-registry.js";
 
@@ -69,7 +68,10 @@ describe("handleInitialize", () => {
   });
 
   it("stores clientCapabilities for later retrieval", async () => {
-    await handleInitialize({ protocolVersion: 1, clientCapabilities: { fs: { readTextFile: true } } });
+    await handleInitialize({
+      protocolVersion: 1,
+      clientCapabilities: { fs: { readTextFile: true } },
+    });
     const caps = getClientCapabilities();
     expect(caps?.fs?.readTextFile).toBe(true);
   });
@@ -152,7 +154,9 @@ describe("handleSessionSetMode", () => {
 
   it("throws for non-existent session", async () => {
     mockGetSession.mockReturnValue(undefined);
-    await expect(handleSessionSetMode({ sessionId: "nonexistent", modeId: "code" })).rejects.toThrow();
+    await expect(
+      handleSessionSetMode({ sessionId: "nonexistent", modeId: "code" }),
+    ).rejects.toThrow();
   });
 });
 
@@ -189,16 +193,5 @@ describe("handleSessionSetConfigOption", () => {
     expect(result.configOptions).toBeDefined();
     expect(result.configOptions).toHaveLength(1);
     expect(result.configOptions[0].id).toBe("thought_level");
-  });
-
-  it("sets config option value", async () => {
-    await handleSessionSetConfigOption({
-      sessionId: "sess_cfg",
-      configId: "thought_level",
-      value: "high",
-    });
-    const opts = getSessionConfigOptions("sess_cfg");
-    const thoughtOpt = opts.find((o) => o.id === "thought_level");
-    expect(thoughtOpt).toBeDefined();
   });
 });

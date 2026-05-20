@@ -1,6 +1,7 @@
 // session/set_config_option handler — sets a session config option.
 import { getSession } from "../../pi/session-registry.js";
 import { throwAcpError } from "../../utils/error-codes.js";
+import { requireParams } from "../../utils/param-validation.js";
 import type {
   SetSessionConfigOptionRequest,
   SetSessionConfigOptionResponse,
@@ -10,20 +11,15 @@ import type {
 // Store config options per session
 const configOptions = new Map<string, SessionConfigOption[]>();
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleSessionSetConfigOption(
   params: Record<string, unknown> | undefined,
 ): Promise<SetSessionConfigOptionResponse> {
-  if (
-    !params ||
-    typeof params !== "object" ||
-    !("sessionId" in params) ||
-    !("configId" in params) ||
-    !("value" in params)
-  ) {
-    throwAcpError(-32602, "Invalid params: sessionId, configId, and value are required");
-  }
-
-  const req = params as unknown as SetSessionConfigOptionRequest;
+  const req = requireParams<SetSessionConfigOptionRequest>(params, [
+    "sessionId",
+    "configId",
+    "value",
+  ]);
 
   const entry = getSession(req.sessionId);
   if (!entry) {
@@ -70,9 +66,4 @@ export async function handleSessionSetConfigOption(
   }
 
   return { configOptions: opts };
-}
-
-/** Get current config options for a session. */
-export function getSessionConfigOptions(sessionId: string): SessionConfigOption[] {
-  return configOptions.get(sessionId) ?? [];
 }

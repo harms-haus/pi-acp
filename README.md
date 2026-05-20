@@ -4,12 +4,20 @@
 
 A standalone Node.js binary that wraps pi's SDK to expose a fully ACP-compliant agent over JSON-RPC 2.0 on stdin/stdout. Enables any ACP-compatible client (Zed, VS Code, etc.) to drive the pi coding agent.
 
+**Requires Node.js ≥ 20.0.0**
+
 ## Installation
 
 ### As a pi extension
 
 ```bash
 pi install git:github.com/harms-haus/pi-acp
+```
+
+### From npm
+
+```bash
+npm install -g @harms-haus/pi-acp
 ```
 
 ### From source
@@ -24,6 +32,9 @@ npm run build
 ## Usage
 
 ```bash
+# After global install
+pi-acp
+
 # Start the ACP agent on stdio
 npm start
 
@@ -69,7 +80,9 @@ src/
 │   ├── index.ts                  # Barrel exports
 │   ├── types.ts                  # ACP types re-exported from @agentclientprotocol/sdk
 │   ├── protocol.ts               # JSON-RPC 2.0 message router
+│   ├── client-state.ts       # Shared client capabilities state
 │   └── methods/                  # ACP agent-side method handlers
+│       ├── index.ts                  # Barrel exports
 │       ├── initialize.ts
 │       ├── authenticate.ts
 │       ├── session-new.ts
@@ -104,13 +117,15 @@ src/
 │   ├── content-translation.ts    # pi content ↔ ACP ContentBlock conversion
 │   ├── error-codes.ts            # JSON-RPC error helpers
 │   ├── path-validation.ts        # Path sanitization (prevents traversal)
+│   ├── param-validation.ts      # Shared parameter validation helper
 │   └── turn-id.ts                # Turn ID generation for notification grouping
-└── (config)
-    ├── package.json
-    ├── tsconfig.json
-    ├── tsconfig.test.json
-    ├── eslint.config.mjs
-    └── vitest.config.ts
+
+# (project root)
+├── package.json
+├── tsconfig.json
+├── tsconfig.test.json
+├── eslint.config.mjs
+└── vitest.config.ts
 ```
 
 ## Supported ACP Methods
@@ -162,15 +177,19 @@ src/
 # Install dependencies
 npm install
 
-# Run all checks (lint + type-check + tests)
+# Run all checks (type-check + lint + format + tests)
 npm run check
 
 # Lint
 npm run lint
 npm run lint:fix
 
+# Format
+npm run format
+npm run format:check
+
 # Type check
-npx tsc --noEmit
+npm run typecheck
 
 # Tests
 npm test

@@ -2,16 +2,13 @@
 import { cleanupSession } from "../../pi/event-translator.js";
 import { removeSession, getSession, setSessionCancelling } from "../../pi/session-registry.js";
 import { throwAcpError } from "../../utils/error-codes.js";
+import { requireParams } from "../../utils/param-validation.js";
 import type { CloseSessionRequest, CloseSessionResponse } from "../types.js";
 
 export async function handleSessionClose(
   params: Record<string, unknown> | undefined,
 ): Promise<CloseSessionResponse> {
-  if (!params || typeof params !== "object" || !("sessionId" in params)) {
-    throwAcpError(-32602, "Invalid params: sessionId is required");
-  }
-
-  const req = params as unknown as CloseSessionRequest;
+  const req = requireParams<CloseSessionRequest>(params, ["sessionId"]);
   const entry = getSession(req.sessionId);
 
   if (!entry) {

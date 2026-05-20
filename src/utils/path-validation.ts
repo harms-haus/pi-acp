@@ -15,9 +15,7 @@ export function resolveAndValidatePath(
   additionalDirs?: string[],
 ): string {
   // Always resolve to absolute path
-  const resolved = isAbsolute(requestedPath)
-    ? resolve(requestedPath)
-    : resolve(cwd, requestedPath);
+  const resolved = isAbsolute(requestedPath) ? resolve(requestedPath) : resolve(cwd, requestedPath);
 
   // Build list of allowed roots
   const allowedRoots = [resolve(cwd)];
@@ -28,7 +26,9 @@ export function resolveAndValidatePath(
   }
 
   // Check if resolved path is within any allowed root
-  const isAllowed = allowedRoots.some((root) => resolved.startsWith(root + "/") || resolved === root);
+  const isAllowed = allowedRoots.some(
+    (root) => resolved.startsWith(root + "/") || resolved === root,
+  );
   if (!isAllowed) {
     throw new Error(
       `Path not allowed: ${requestedPath} (resolved to ${resolved}, outside session scope)`,

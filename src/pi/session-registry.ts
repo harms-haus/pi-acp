@@ -41,11 +41,6 @@ export function removeSession(id: string): void {
   }
 }
 
-/** Check if a session exists. */
-export function hasSession(id: string): boolean {
-  return sessions.has(id);
-}
-
 /** List all active sessions as ACP SessionInfo[]. */
 export function listSessions(cwd?: string): SessionInfo[] {
   const result: SessionInfo[] = [];

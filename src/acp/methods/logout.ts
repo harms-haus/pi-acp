@@ -2,6 +2,7 @@
 import { throwAcpError } from "../../utils/error-codes.js";
 import type { LogoutResponse } from "../types.js";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleLogout(
   _params: Record<string, unknown> | undefined,
 ): Promise<LogoutResponse> {

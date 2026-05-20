@@ -1,5 +1,5 @@
 {
-  "name": "pi-acp",
+  "name": "@harms-haus/pi-acp",
   "version": "0.1.0",
   "description": "ACP (Agent Client Protocol) agent transport for pi coding agent",
   "type": "module",
@@ -13,10 +13,14 @@
     "dev": "node --watch --import tsx src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"*.{mjs,ts,js,json}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"*.{mjs,ts,js,json}\"",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check": "tsc --noEmit && eslint . && vitest run"
+    "check": "tsc --noEmit && eslint . && prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"*.{mjs,ts,js,json}\" && vitest run"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.21.0",
@@ -29,9 +33,9 @@
     "@typescript-eslint/parser": "^8.59.3",
     "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-n": "^18.0.1",
-    "eslint-plugin-unicorn": "^64.0.0",
+    "prettier": "^3.8.3",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.59.3",
@@ -43,5 +47,22 @@
     "acp",
     "agent-client-protocol"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "harms-haus",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harms-haus/pi-acp.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }

@@ -2,16 +2,13 @@
 import { createAcpSession } from "../../pi/sdk-factory.js";
 import { registerSession } from "../../pi/session-registry.js";
 import { throwAcpError } from "../../utils/error-codes.js";
+import { requireParams } from "../../utils/param-validation.js";
 import type { NewSessionRequest, NewSessionResponse } from "../types.js";
 
 export async function handleSessionNew(
   params: Record<string, unknown> | undefined,
 ): Promise<NewSessionResponse> {
-  if (!params || typeof params !== "object" || !("cwd" in params)) {
-    throwAcpError(-32602, "Invalid params: cwd is required");
-  }
-
-  const req = params as unknown as NewSessionRequest;
+  const req = requireParams<NewSessionRequest>(params, ["cwd"]);
 
   if (typeof req.cwd !== "string" || req.cwd.length === 0) {
     throwAcpError(-32602, "Invalid params: cwd must be a non-empty string");

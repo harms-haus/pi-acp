@@ -1,6 +1,7 @@
 // authenticate handler — pi doesn't require auth, so this is a no-op.
 import type { AuthenticateResponse } from "../types.js";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleAuthenticate(
   _params: Record<string, unknown> | undefined,
 ): Promise<AuthenticateResponse> {

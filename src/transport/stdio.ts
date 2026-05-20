@@ -5,7 +5,6 @@ import { StringDecoder } from "node:string_decoder";
 
 import type { JsonRpcOutgoing } from "../acp/types.js";
 
-let stdinClosed = false;
 let stdinListener: ((chunk: Buffer) => void) | null = null;
 let buffer = "";
 const decoder = new StringDecoder("utf8");
@@ -33,7 +32,6 @@ export function attachStdioReader(onMessage: (raw: string) => void): { dispose: 
   process.stdin.setEncoding("buffer" as unknown as BufferEncoding);
   process.stdin.on("data", stdinListener);
   process.stdin.on("end", () => {
-    stdinClosed = true;
     const remaining = decoder.end();
     if (remaining) {
       const trimmed = remaining.endsWith("\r") ? remaining.slice(0, -1) : remaining;
@@ -50,11 +48,6 @@ function dispose(): void {
   }
 }
 
-/** Check if stdin has ended. */
-export function isStdinClosed(): boolean {
-  return stdinClosed;
-}
-
 /** Write a JSON object followed by LF to stdout. */
 export function writeJson(obj: unknown): void {
   process.stdout.write(`${JSON.stringify(obj)}\n`);
@@ -66,7 +59,12 @@ export function writeResponse(id: number | string | null, result: unknown): void
 }
 
 /** Write a JSON-RPC error response. */
-export function writeError(id: number | string | null, code: number, message: string, data?: unknown): void {
+export function writeError(
+  id: number | string | null,
+  code: number,
+  message: string,
+  data?: unknown,
+): void {
   writeJson({
     jsonrpc: "2.0" as const,
     id,

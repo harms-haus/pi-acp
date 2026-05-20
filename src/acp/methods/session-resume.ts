@@ -1,16 +1,14 @@
 // session/resume handler — resumes session without history replay.
 import { getSession } from "../../pi/session-registry.js";
 import { throwAcpError } from "../../utils/error-codes.js";
+import { requireParams } from "../../utils/param-validation.js";
 import type { ResumeSessionRequest, ResumeSessionResponse } from "../types.js";
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function handleSessionResume(
   params: Record<string, unknown> | undefined,
 ): Promise<ResumeSessionResponse> {
-  if (!params || typeof params !== "object" || !("sessionId" in params)) {
-    throwAcpError(-32602, "Invalid params: sessionId is required");
-  }
-
-  const req = params as unknown as ResumeSessionRequest;
+  const req = requireParams<ResumeSessionRequest>(params, ["sessionId"]);
 
   const existing = getSession(req.sessionId);
   if (!existing) {

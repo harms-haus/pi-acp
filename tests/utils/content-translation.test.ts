@@ -101,9 +101,7 @@ describe("piContentToAcpBlocks", () => {
   it("handles non-object array items", () => {
     const result = piContentToAcpBlocks([42, null, "text"]);
     // Non-objects (number, null) are skipped; strings are converted
-    expect(result).toEqual([
-      { type: "text", text: "text" },
-    ]);
+    expect(result).toEqual([{ type: "text", text: "text" }]);
   });
 });
 
@@ -114,9 +112,7 @@ describe("acpBlocksToPiContent", () => {
   });
 
   it("converts image block to pi image", () => {
-    const result = acpBlocksToPiContent([
-      { type: "image", data: "abc", mimeType: "image/png" },
-    ]);
+    const result = acpBlocksToPiContent([{ type: "image", data: "abc", mimeType: "image/png" }]);
     // Returns array with single element when multiple blocks
     expect(result).toEqual([
       { type: "image", source: { type: "base64", mediaType: "image/png", data: "abc" } },
@@ -124,9 +120,7 @@ describe("acpBlocksToPiContent", () => {
   });
 
   it("converts audio block to text reference", () => {
-    const result = acpBlocksToPiContent([
-      { type: "audio", data: "abc", mimeType: "audio/wav" },
-    ]);
+    const result = acpBlocksToPiContent([{ type: "audio", data: "abc", mimeType: "audio/wav" }]);
     expect(result).toContain("audio: audio/wav");
   });
 
