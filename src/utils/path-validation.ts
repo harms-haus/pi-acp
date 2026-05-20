@@ -77,6 +77,9 @@ export function assertWithinSandbox(
   message?: string,
 ): void {
   if (!realPath.startsWith(realCwd + "/") && realPath !== realCwd) {
-    throwAcpError(ACP_ERROR_CODES.RESOURCE_NOT_FOUND, message ?? `Path escapes session directory: ${requestedPath}`);
+    throwAcpError(
+      ACP_ERROR_CODES.RESOURCE_NOT_FOUND,
+      message ?? `Path escapes session directory: ${requestedPath}`,
+    );
   }
 }

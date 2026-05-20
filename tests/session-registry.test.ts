@@ -202,10 +202,7 @@ describe("session-registry", () => {
     reg.registerSession(session, "/tmp");
 
     expect(() => {
-      reg.requireSession<{ sessionId: string }>(
-        {},
-        ["sessionId"],
-      );
+      reg.requireSession<{ sessionId: string }>({}, ["sessionId"]);
     }).toThrow(expect.objectContaining({ code: -32602 }));
   });
 
@@ -214,10 +211,7 @@ describe("session-registry", () => {
     const { reg } = await freshRegistry();
 
     expect(() => {
-      reg.requireSession<{ sessionId: string }>(
-        { sessionId: "no_such_session" },
-        ["sessionId"],
-      );
+      reg.requireSession<{ sessionId: string }>({ sessionId: "no_such_session" }, ["sessionId"]);
     }).toThrow(expect.objectContaining({ code: -32002 }));
   });
 

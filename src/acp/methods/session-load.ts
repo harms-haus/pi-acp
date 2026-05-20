@@ -10,7 +10,12 @@ import { piContentToAcpBlocks } from "../../utils/content-translation.js";
 import { throwAcpError } from "../../utils/error-codes.js";
 import { requireParams } from "../../utils/param-validation.js";
 import { resolveAndValidatePath, assertWithinSandbox } from "../../utils/path-validation.js";
-import { ACP_ERROR_CODES, CLIENT_METHODS, type LoadSessionRequest, type LoadSessionResponse } from "../types.js";
+import {
+  ACP_ERROR_CODES,
+  CLIENT_METHODS,
+  type LoadSessionRequest,
+  type LoadSessionResponse,
+} from "../types.js";
 
 /**
  * Interface for pi SDK session entries.

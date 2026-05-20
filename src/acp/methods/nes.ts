@@ -1,6 +1,11 @@
 // nes/* handlers (UNSTABLE) — start, suggest, close
 import { throwAcpError } from "../../utils/error-codes.js";
-import { ACP_ERROR_CODES, type StartNesResponse, type SuggestNesResponse, type CloseNesResponse } from "../types.js";
+import {
+  ACP_ERROR_CODES,
+  type StartNesResponse,
+  type SuggestNesResponse,
+  type CloseNesResponse,
+} from "../types.js";
 
 /**
  * Handle the `nes/start` ACP method (UNSTABLE) — not yet implemented.

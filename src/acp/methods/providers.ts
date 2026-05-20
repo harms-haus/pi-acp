@@ -28,7 +28,10 @@ export async function handleProvidersList(
 export async function handleProvidersSet(
   _params: Record<string, unknown> | undefined,
 ): Promise<SetProvidersResponse> {
-  throwAcpError(ACP_ERROR_CODES.METHOD_NOT_FOUND, "Method not implemented (UNSTABLE): providers/set");
+  throwAcpError(
+    ACP_ERROR_CODES.METHOD_NOT_FOUND,
+    "Method not implemented (UNSTABLE): providers/set",
+  );
 }
 
 /**
@@ -41,5 +44,8 @@ export async function handleProvidersSet(
 export async function handleProvidersDisable(
   _params: Record<string, unknown> | undefined,
 ): Promise<DisableProvidersResponse> {
-  throwAcpError(ACP_ERROR_CODES.METHOD_NOT_FOUND, "Method not implemented (UNSTABLE): providers/disable");
+  throwAcpError(
+    ACP_ERROR_CODES.METHOD_NOT_FOUND,
+    "Method not implemented (UNSTABLE): providers/disable",
+  );
 }

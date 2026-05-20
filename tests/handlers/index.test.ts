@@ -13,7 +13,11 @@ vi.mock("../../src/pi/session-registry.js", () => ({
     }
     return {
       entry: {
-        session: { abort: vi.fn(), dispose: vi.fn(), sessionManager: { getEntries: vi.fn(() => []) } },
+        session: {
+          abort: vi.fn(),
+          dispose: vi.fn(),
+          sessionManager: { getEntries: vi.fn(() => []) },
+        },
         cwd: "/test",
         createdAt: Date.now(),
         cancelling: false,
@@ -55,7 +59,8 @@ vi.mock("../../src/pi/event-translator.js", () => ({
 }));
 
 vi.mock("../../src/acp/methods/session-set-config.js", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../../src/acp/methods/session-set-config.js")>();
+  const original =
+    await importOriginal<typeof import("../../src/acp/methods/session-set-config.js")>();
   return {
     ...original,
     cleanupConfigOptions: vi.fn(),
@@ -67,11 +72,18 @@ import { handleInitialize, getClientCapabilities } from "../../src/acp/methods/i
 import { handleSessionClose } from "../../src/acp/methods/session-close.js";
 import { handleSessionList } from "../../src/acp/methods/session-list.js";
 import { handleSessionNew } from "../../src/acp/methods/session-new.js";
-import { handleSessionSetConfigOption, cleanupConfigOptions } from "../../src/acp/methods/session-set-config.js";
+import {
+  handleSessionSetConfigOption,
+  cleanupConfigOptions,
+} from "../../src/acp/methods/session-set-config.js";
 import { handleSessionSetMode } from "../../src/acp/methods/session-set-mode.js";
 import { requireSession } from "../../src/pi/session-registry.js";
 import { cleanupSession } from "../../src/pi/event-translator.js";
-import { listSessions, removeSession, setSessionCancelling } from "../../src/pi/session-registry.js";
+import {
+  listSessions,
+  removeSession,
+  setSessionCancelling,
+} from "../../src/pi/session-registry.js";
 
 describe("handleInitialize", () => {
   it("throws when params is undefined", async () => {
@@ -370,7 +382,9 @@ describe("handleSessionList — pagination", () => {
   });
 
   it("merges persisted sessions with active sessions", async () => {
-    const SessionManager = await import("@earendil-works/pi-coding-agent").then((m) => m.SessionManager);
+    const SessionManager = await import("@earendil-works/pi-coding-agent").then(
+      (m) => m.SessionManager,
+    );
     const mockedSM = vi.mocked(SessionManager);
     mockedSM.list.mockResolvedValueOnce([
       { path: "persisted_1", cwd: "/project", name: "Test Session", modified: new Date() } as any,
@@ -391,7 +405,9 @@ describe("handleSessionList — pagination", () => {
   });
 
   it("deduplicates persisted sessions against active ones", async () => {
-    const SessionManager = await import("@earendil-works/pi-coding-agent").then((m) => m.SessionManager);
+    const SessionManager = await import("@earendil-works/pi-coding-agent").then(
+      (m) => m.SessionManager,
+    );
     const mockedSM = vi.mocked(SessionManager);
     mockedSM.list.mockResolvedValueOnce([
       { path: "active_1", cwd: "/project", name: "Dup", modified: new Date() } as any,
@@ -408,7 +424,9 @@ describe("handleSessionList — pagination", () => {
   });
 
   it("uses fallback cwd when persisted session has no cwd", async () => {
-    const SessionManager = await import("@earendil-works/pi-coding-agent").then((m) => m.SessionManager);
+    const SessionManager = await import("@earendil-works/pi-coding-agent").then(
+      (m) => m.SessionManager,
+    );
     const mockedSM = vi.mocked(SessionManager);
     mockedSM.list.mockResolvedValueOnce([
       { path: "persisted_no_cwd", cwd: "", name: "No Cwd", modified: new Date() } as any,
@@ -479,7 +497,11 @@ describe("cleanupConfigOptions", () => {
     realCleanup("sess_cleanup_test");
 
     // After cleanup, setting again should re-initialize defaults (not throw)
-    const result = await realSet({ sessionId: "sess_cleanup_test", configId: "thought_level", value: "low" });
+    const result = await realSet({
+      sessionId: "sess_cleanup_test",
+      configId: "thought_level",
+      value: "low",
+    });
     expect(result.configOptions[0].currentValue).toBe("low");
 
     vi.doUnmock("../../src/acp/methods/session-set-config.js");

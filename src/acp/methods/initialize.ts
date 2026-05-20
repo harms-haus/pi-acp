@@ -33,7 +33,10 @@ export async function handleInitialize(
 
   // Validate protocol version
   if (typeof req.protocolVersion !== "number") {
-    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: protocolVersion must be a number");
+    throwAcpError(
+      ACP_ERROR_CODES.INVALID_PARAMS,
+      "Invalid params: protocolVersion must be a number",
+    );
   }
 
   // Store client capabilities for later use

@@ -12,5 +12,8 @@ import { ACP_ERROR_CODES, type SetSessionModelResponse } from "../types.js";
 export async function handleSessionSetModel(
   _params: Record<string, unknown> | undefined,
 ): Promise<SetSessionModelResponse> {
-  throwAcpError(ACP_ERROR_CODES.METHOD_NOT_FOUND, "Method not implemented (UNSTABLE): session/set_model");
+  throwAcpError(
+    ACP_ERROR_CODES.METHOD_NOT_FOUND,
+    "Method not implemented (UNSTABLE): session/set_model",
+  );
 }

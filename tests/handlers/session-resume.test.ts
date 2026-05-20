@@ -29,10 +29,7 @@ describe("handleSessionResume", () => {
     const result = await handleSessionResume({ sessionId: "sess_exists" });
 
     expect(result).toEqual({});
-    expect(mockRequireSession).toHaveBeenCalledWith(
-      { sessionId: "sess_exists" },
-      ["sessionId"],
-    );
+    expect(mockRequireSession).toHaveBeenCalledWith({ sessionId: "sess_exists" }, ["sessionId"]);
   });
 
   // ── 2. Throws when sessionId is missing ───────────────────────────────────
@@ -60,8 +57,8 @@ describe("handleSessionResume", () => {
       throw error;
     });
 
-    await expect(
-      handleSessionResume({ sessionId: "sess_nonexistent" }),
-    ).rejects.toThrow(expect.objectContaining({ code: -32002 }));
+    await expect(handleSessionResume({ sessionId: "sess_nonexistent" })).rejects.toThrow(
+      expect.objectContaining({ code: -32002 }),
+    );
   });
 });

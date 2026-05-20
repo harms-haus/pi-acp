@@ -23,10 +23,7 @@ describe("requireParams", () => {
   // ── 1. Returns params object when all keys present ────────────────────────
   it("returns params object when all keys present", () => {
     const params = { sessionId: "sess_1", cwd: "/tmp" };
-    const result = requireParams<{ sessionId: string; cwd: string }>(params, [
-      "sessionId",
-      "cwd",
-    ]);
+    const result = requireParams<{ sessionId: string; cwd: string }>(params, ["sessionId", "cwd"]);
     expect(result).toBe(params);
   });
 
@@ -39,9 +36,7 @@ describe("requireParams", () => {
 
   // ── 3. Throws when params is null ─────────────────────────────────────────
   it("throws with -32602 when params is null", () => {
-    expect(() => requireParams(null, ["key"])).toThrow(
-      expect.objectContaining({ code: -32602 }),
-    );
+    expect(() => requireParams(null, ["key"])).toThrow(expect.objectContaining({ code: -32602 }));
   });
 
   // ── 4. Throws when params is a string (non-object) ────────────────────────

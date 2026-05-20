@@ -12,5 +12,8 @@ import { ACP_ERROR_CODES, type ForkSessionResponse } from "../types.js";
 export async function handleSessionFork(
   _params: Record<string, unknown> | undefined,
 ): Promise<ForkSessionResponse> {
-  throwAcpError(ACP_ERROR_CODES.METHOD_NOT_FOUND, "Method not implemented (UNSTABLE): session/fork");
+  throwAcpError(
+    ACP_ERROR_CODES.METHOD_NOT_FOUND,
+    "Method not implemented (UNSTABLE): session/fork",
+  );
 }

@@ -177,9 +177,9 @@ describe("handleSessionLoad", () => {
   it("throws -32002 when session not found and sessionId has no .jsonl or /", async () => {
     mockGetSession.mockReturnValue(undefined);
 
-    await expect(
-      handleSessionLoad({ sessionId: "plain_id", cwd: "/project" }),
-    ).rejects.toThrow(expect.objectContaining({ code: -32002 }));
+    await expect(handleSessionLoad({ sessionId: "plain_id", cwd: "/project" })).rejects.toThrow(
+      expect.objectContaining({ code: -32002 }),
+    );
   });
 
   // ── 7. Replays user and assistant messages with tool calls ────────────────
@@ -194,10 +194,7 @@ describe("handleSessionLoad", () => {
         type: "message",
         id: "msg_assistant_1",
         message: { role: "assistant", content: "Done" },
-        toolCalls: [
-          { id: "tc_1", name: "write_file", kind: "write" },
-          "tc_string_id",
-        ],
+        toolCalls: [{ id: "tc_1", name: "write_file", kind: "write" }, "tc_string_id"],
       },
     ]);
     mockGetSession.mockReturnValue({

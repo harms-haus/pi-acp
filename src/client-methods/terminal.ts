@@ -73,7 +73,10 @@ export async function handleTerminalCreate(
     const session = getSession(req.sessionId);
     const sessionCwd = session?.cwd ?? process.cwd();
     if (!isPathWithinRoot(req.cwd, sessionCwd)) {
-      throwAcpError(ACP_ERROR_CODES.RESOURCE_NOT_FOUND, `Terminal cwd outside session scope: ${req.cwd}`);
+      throwAcpError(
+        ACP_ERROR_CODES.RESOURCE_NOT_FOUND,
+        `Terminal cwd outside session scope: ${req.cwd}`,
+      );
     }
   }
   const terminalId = `term_${String(Date.now())}_${Math.random().toString(36).slice(2, 8)}`;

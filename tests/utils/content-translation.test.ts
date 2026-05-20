@@ -106,7 +106,9 @@ describe("piContentToAcpBlocks", () => {
 
   it("converts unknown type object to JSON.stringify text block", () => {
     const result = piContentToAcpBlocks([{ type: "unknown_type", foo: "bar" }]);
-    expect(result).toEqual([{ type: "text", text: JSON.stringify({ type: "unknown_type", foo: "bar" }) }]);
+    expect(result).toEqual([
+      { type: "text", text: JSON.stringify({ type: "unknown_type", foo: "bar" }) },
+    ]);
   });
 
   it("handles null item in array", () => {
@@ -247,7 +249,9 @@ describe("piContentToAcpBlocks — type narrowing branches", () => {
   });
 
   it("handles image block with non-string mediaType", () => {
-    const result = piContentToAcpBlocks([{ type: "image", source: { data: "abc", mediaType: 123 } }]);
+    const result = piContentToAcpBlocks([
+      { type: "image", source: { data: "abc", mediaType: 123 } },
+    ]);
     expect(result).toEqual([{ type: "image", data: "abc", mimeType: "image/png" }]);
   });
 

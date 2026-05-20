@@ -19,7 +19,12 @@ vi.mock("../src/pi/event-translator.js", () => ({
 
 import { handleSessionPrompt, determineStopReason } from "../src/acp/methods/session-prompt.js";
 
-import { requireSession, isSessionCancelling, setPromptRequestId, setSessionCancelling } from "../src/pi/session-registry.js";
+import {
+  requireSession,
+  isSessionCancelling,
+  setPromptRequestId,
+  setSessionCancelling,
+} from "../src/pi/session-registry.js";
 import { acpBlocksToPiContent } from "../src/utils/content-translation.js";
 
 const mockedRequireSession = vi.mocked(requireSession);
@@ -155,9 +160,7 @@ describe("handleSessionPrompt", () => {
     // Verify subscribe and prompt were called
     expect(mockSubscribe).toHaveBeenCalledTimes(1);
     expect(mockPrompt).toHaveBeenCalledTimes(1);
-    expect(acpBlocksToPiContent).toHaveBeenCalledWith([
-      { type: "text", text: "hello world" },
-    ]);
+    expect(acpBlocksToPiContent).toHaveBeenCalledWith([{ type: "text", text: "hello world" }]);
 
     // Verify prompt request ID was set
     expect(setPromptRequestId).toHaveBeenCalledWith("sess_prompt_ok", 42);

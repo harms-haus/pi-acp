@@ -142,9 +142,9 @@ describe("handleFsReadTextFile", () => {
     const linkPath = join(subDir, "escape_link");
     symlinkSync("/etc/passwd", linkPath);
 
-    await expect(
-      handleFsReadTextFile({ path: linkPath, sessionId: "sess_1" }),
-    ).rejects.toThrow("Path escapes session directory");
+    await expect(handleFsReadTextFile({ path: linkPath, sessionId: "sess_1" })).rejects.toThrow(
+      "Path escapes session directory",
+    );
   });
 
   it("throws ENOENT when reading a non-existent file", async () => {

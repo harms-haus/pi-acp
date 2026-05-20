@@ -206,9 +206,7 @@ describe("protocol", () => {
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    await processMessage(
-      JSON.stringify({ jsonrpc: "2.0", method: "test/notification_error" }),
-    );
+    await processMessage(JSON.stringify({ jsonrpc: "2.0", method: "test/notification_error" }));
 
     expect(handler).toHaveBeenCalled();
     expect(consoleSpy).toHaveBeenCalledWith(

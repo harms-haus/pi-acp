@@ -298,9 +298,7 @@ describe("handleTerminalKill", () => {
   });
 
   it("throws -32602 when terminalId is missing", async () => {
-    await expect(handleTerminalKill({})).rejects.toThrow(
-      expect.objectContaining({ code: -32602 }),
-    );
+    await expect(handleTerminalKill({})).rejects.toThrow(expect.objectContaining({ code: -32602 }));
   });
 });
 
@@ -431,22 +429,14 @@ describe("handleTerminalCreate — env and cwd branches", () => {
   it("uses undefined cwd when not provided", async () => {
     await handleTerminalCreate({ command: "ls" });
 
-    expect(mockSpawn).toHaveBeenCalledWith(
-      "ls",
-      [],
-      expect.objectContaining({ cwd: undefined }),
-    );
+    expect(mockSpawn).toHaveBeenCalledWith("ls", [], expect.objectContaining({ cwd: undefined }));
   });
 
   it("passes cwd when provided", async () => {
     const cwd = process.cwd();
     await handleTerminalCreate({ command: "ls", cwd });
 
-    expect(mockSpawn).toHaveBeenCalledWith(
-      "ls",
-      [],
-      expect.objectContaining({ cwd }),
-    );
+    expect(mockSpawn).toHaveBeenCalledWith("ls", [], expect.objectContaining({ cwd }));
   });
 
   it("throws -32002 when cwd is outside session scope", async () => {
