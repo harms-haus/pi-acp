@@ -17,7 +17,7 @@ describe("toolNameToKind", () => {
     expect(toolNameToKind("edit")).toBe("edit");
   });
 
-  it("maps write to create", () => {
+  it("maps write to other", () => {
     expect(toolNameToKind("write")).toBe("other");
   });
 
@@ -98,10 +98,25 @@ describe("piContentToAcpBlocks", () => {
     expect(result).toEqual([]);
   });
 
-  it("handles non-object array items", () => {
+  it("handles non-object array items", async () => {
     const result = piContentToAcpBlocks([42, null, "text"]);
     // Non-objects (number, null) are skipped; strings are converted
     expect(result).toEqual([{ type: "text", text: "text" }]);
+  });
+
+  it("converts unknown type object to JSON.stringify text block", () => {
+    const result = piContentToAcpBlocks([{ type: "unknown_type", foo: "bar" }]);
+    expect(result).toEqual([{ type: "text", text: JSON.stringify({ type: "unknown_type", foo: "bar" }) }]);
+  });
+
+  it("handles null item in array", () => {
+    const result = piContentToAcpBlocks([null]);
+    expect(result).toEqual([]);
+  });
+
+  it("handles number item in array", () => {
+    const result = piContentToAcpBlocks([42]);
+    expect(result).toEqual([]);
   });
 });
 
@@ -185,5 +200,59 @@ describe("piToolResultToAcpContent", () => {
       newText: "new content",
       oldText: undefined,
     });
+  });
+});
+
+describe("piContentToAcpBlocks — non-string non-array", () => {
+  it("returns empty text block for null content", () => {
+    const result = piContentToAcpBlocks(null);
+    expect(result).toEqual([{ type: "text", text: "" }]);
+  });
+
+  it("returns empty text block for number content", () => {
+    const result = piContentToAcpBlocks(42);
+    expect(result).toEqual([{ type: "text", text: "" }]);
+  });
+
+  it("returns empty text block for object content", () => {
+    const result = piContentToAcpBlocks({ foo: "bar" });
+    expect(result).toEqual([{ type: "text", text: "" }]);
+  });
+});
+
+describe("piContentToAcpBlocks — type narrowing branches", () => {
+  it("handles text block with non-string text field", () => {
+    const result = piContentToAcpBlocks([{ type: "text", text: 42 }]);
+    expect(result).toEqual([{ type: "text", text: "" }]);
+  });
+
+  it("handles text block with missing text field", () => {
+    const result = piContentToAcpBlocks([{ type: "text" }]);
+    expect(result).toEqual([{ type: "text", text: "" }]);
+  });
+
+  it("handles thinking block with non-string thinking field", () => {
+    const result = piContentToAcpBlocks([{ type: "thinking", thinking: null }]);
+    expect(result).toEqual([{ type: "text", text: "" }]);
+  });
+
+  it("handles image block with missing source", () => {
+    const result = piContentToAcpBlocks([{ type: "image" }]);
+    expect(result).toEqual([]);
+  });
+
+  it("handles image block with non-string data", () => {
+    const result = piContentToAcpBlocks([{ type: "image", source: { data: null } }]);
+    expect(result).toEqual([{ type: "image", data: "", mimeType: "image/png" }]);
+  });
+
+  it("handles image block with non-string mediaType", () => {
+    const result = piContentToAcpBlocks([{ type: "image", source: { data: "abc", mediaType: 123 } }]);
+    expect(result).toEqual([{ type: "image", data: "abc", mimeType: "image/png" }]);
+  });
+
+  it("handles unknown block type by JSON stringifying", () => {
+    const result = piContentToAcpBlocks([{ type: "custom", value: 42 }]);
+    expect(result).toEqual([{ type: "text", text: JSON.stringify({ type: "custom", value: 42 }) }]);
   });
 });

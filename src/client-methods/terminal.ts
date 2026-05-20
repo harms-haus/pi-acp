@@ -4,20 +4,18 @@ import { spawn, type SpawnOptionsWithoutStdio } from "node:child_process";
 
 import { getClientCapabilities } from "../acp/client-state.js";
 import { sendClientRequest } from "../acp/protocol.js";
-import type {
-  CreateTerminalRequest,
-  CreateTerminalResponse,
-  TerminalOutputRequest,
-  TerminalOutputResponse,
-  WaitForTerminalExitRequest,
-  WaitForTerminalExitResponse,
-  ReleaseTerminalRequest,
-  ReleaseTerminalResponse,
-  KillTerminalRequest,
-  KillTerminalResponse,
+import {
+  ACP_ERROR_CODES,
+  type CreateTerminalRequest,
+  type CreateTerminalResponse,
+  type TerminalOutputResponse,
+  type WaitForTerminalExitResponse,
+  type ReleaseTerminalResponse,
+  type KillTerminalResponse,
 } from "../acp/types.js";
 import { getSession } from "../pi/session-registry.js";
 import { throwAcpError } from "../utils/error-codes.js";
+import { isPathWithinRoot } from "../utils/path-validation.js";
 
 interface TerminalWaiter {
   resolve: (status: { exitCode?: number; signal?: string }) => void;
@@ -27,7 +25,7 @@ interface TerminalWaiter {
 interface ActiveTerminal {
   proc: ReturnType<typeof spawn>;
   output: string;
-  outputByteLimit: number;
+  outputCharLimit: number;
   exited: boolean;
   exitCode: number | null;
   exitSignal: string | null;
@@ -35,8 +33,30 @@ interface ActiveTerminal {
 }
 
 const activeTerminals = new Map<string, ActiveTerminal>();
-const DEFAULT_OUTPUT_BYTE_LIMIT = 1024 * 1024; // 1MB default
+const DEFAULT_OUTPUT_CHAR_LIMIT = 1024 * 1024; // 1MB default
 
+/** Validate and retrieve a terminal by terminalId from params. */
+function requireTerminal(params: unknown): { terminalId: string; terminal: ActiveTerminal } {
+  const req = params as { terminalId?: string };
+  if (req.terminalId === undefined || req.terminalId === "") {
+    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: terminalId is required");
+  }
+  const terminal = activeTerminals.get(req.terminalId);
+  if (!terminal) {
+    throwAcpError(ACP_ERROR_CODES.RESOURCE_NOT_FOUND, `Terminal not found: ${req.terminalId}`);
+  }
+  return { terminalId: req.terminalId, terminal };
+}
+
+/**
+ * Handle the `terminal/create` client method — spawns a new terminal process.
+ * Delegates to the ACP client if it advertises `terminal` capability;
+ * otherwise spawns locally with cwd validation and output truncation.
+ * @param params - The `CreateTerminalRequest` with `command`, optional `args`, `cwd`, `env`, and `outputByteLimit`
+ * @returns The new `terminalId`
+ * @throws {Error} ACP error -32602 if `command` is missing
+ * @throws {Error} ACP error -32002 if `cwd` is outside the session scope
+ */
 export async function handleTerminalCreate(
   params: Record<string, unknown> | undefined,
 ): Promise<CreateTerminalResponse> {
@@ -46,15 +66,14 @@ export async function handleTerminalCreate(
   }
   const req = params as unknown as CreateTerminalRequest;
   if (!req.command) {
-    throwAcpError(-32602, "Invalid params: command is required");
+    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: command is required");
   }
   // Validate cwd is within session scope
   if (typeof req.cwd === "string") {
     const session = getSession(req.sessionId);
     const sessionCwd = session?.cwd ?? process.cwd();
-    const { isPathWithinRoot } = await import("../utils/path-validation.js");
     if (!isPathWithinRoot(req.cwd, sessionCwd)) {
-      throwAcpError(-32002, `Terminal cwd outside session scope: ${req.cwd}`);
+      throwAcpError(ACP_ERROR_CODES.RESOURCE_NOT_FOUND, `Terminal cwd outside session scope: ${req.cwd}`);
     }
   }
   const terminalId = `term_${String(Date.now())}_${Math.random().toString(36).slice(2, 8)}`;
@@ -74,11 +93,11 @@ export async function handleTerminalCreate(
     shell: false,
   };
   const proc = spawn(req.command, args, spawnOpts);
-  const outputByteLimit = req.outputByteLimit ?? DEFAULT_OUTPUT_BYTE_LIMIT;
+  const outputCharLimit = req.outputByteLimit ?? DEFAULT_OUTPUT_CHAR_LIMIT;
   const terminal: ActiveTerminal = {
     proc,
     output: "",
-    outputByteLimit,
+    outputCharLimit,
     exited: false,
     exitCode: null,
     exitSignal: null,
@@ -112,17 +131,27 @@ export async function handleTerminalCreate(
       waiter.reject(new Error(err.message));
     }
     terminal.waitingForExit = [];
+    // Cleanup after error — mirrors the exit handler
+    proc.removeAllListeners();
+    activeTerminals.delete(terminalId);
   });
   activeTerminals.set(terminalId, terminal);
   return { terminalId };
 }
 
 function _truncateTerminalOutput(terminal: ActiveTerminal): void {
-  if (terminal.output.length > terminal.outputByteLimit) {
-    terminal.output = terminal.output.slice(-terminal.outputByteLimit);
+  if (terminal.output.length > terminal.outputCharLimit) {
+    terminal.output = terminal.output.slice(-terminal.outputCharLimit);
   }
 }
 
+/**
+ * Handle the `terminal/output` client method — returns accumulated terminal output.
+ * @param params - Parameters with `terminalId`
+ * @returns The terminal `output`, optional `exitStatus`, and `truncated` flag
+ * @throws {Error} ACP error -32602 if `terminalId` is missing
+ * @throws {Error} ACP error -32002 if the terminal is not found
+ */
 export async function handleTerminalOutput(
   params: Record<string, unknown> | undefined,
 ): Promise<TerminalOutputResponse> {
@@ -130,23 +159,24 @@ export async function handleTerminalOutput(
   if (clientCaps?.terminal === true) {
     return sendClientRequest("terminal/output", params ?? {}) as Promise<TerminalOutputResponse>;
   }
-  const req = params as unknown as TerminalOutputRequest;
-  if (!req.terminalId) {
-    throwAcpError(-32602, "Invalid params: terminalId is required");
-  }
-  const terminal = activeTerminals.get(req.terminalId);
-  if (!terminal) {
-    throwAcpError(-32002, `Terminal not found: ${req.terminalId}`);
-  }
+  const { terminal } = requireTerminal(params);
   return {
     output: terminal.output,
     exitStatus: terminal.exited
       ? { exitCode: terminal.exitCode, signal: terminal.exitSignal }
       : undefined,
-    truncated: terminal.output.length >= terminal.outputByteLimit,
+    truncated: terminal.output.length >= terminal.outputCharLimit,
   };
 }
 
+/**
+ * Handle the `terminal/wait_for_exit` client method — waits for a terminal process to exit.
+ * Resolves immediately if the process has already exited.
+ * @param params - Parameters with `terminalId`
+ * @returns The `exitCode` and optional `signal`
+ * @throws {Error} ACP error -32602 if `terminalId` is missing
+ * @throws {Error} ACP error -32002 if the terminal is not found
+ */
 export async function handleTerminalWaitForExit(
   params: Record<string, unknown> | undefined,
 ): Promise<WaitForTerminalExitResponse> {
@@ -157,14 +187,7 @@ export async function handleTerminalWaitForExit(
       params ?? {},
     ) as Promise<WaitForTerminalExitResponse>;
   }
-  const req = params as unknown as WaitForTerminalExitRequest;
-  if (!req.terminalId) {
-    throwAcpError(-32602, "Invalid params: terminalId is required");
-  }
-  const terminal = activeTerminals.get(req.terminalId);
-  if (!terminal) {
-    throwAcpError(-32002, `Terminal not found: ${req.terminalId}`);
-  }
+  const { terminal } = requireTerminal(params);
   if (terminal.exited) {
     return { exitCode: terminal.exitCode ?? undefined, signal: terminal.exitSignal ?? undefined };
   }
@@ -173,6 +196,14 @@ export async function handleTerminalWaitForExit(
   });
 }
 
+/**
+ * Handle the `terminal/release` client method — releases a terminal, killing it if still running.
+ * Removes the terminal from the active set.
+ * @param params - Parameters with `terminalId`
+ * @returns An empty `ReleaseTerminalResponse`
+ * @throws {Error} ACP error -32602 if `terminalId` is missing
+ * @throws {Error} ACP error -32002 if the terminal is not found
+ */
 export async function handleTerminalRelease(
   params: Record<string, unknown> | undefined,
 ): Promise<ReleaseTerminalResponse> {
@@ -180,21 +211,21 @@ export async function handleTerminalRelease(
   if (clientCaps?.terminal === true) {
     return sendClientRequest("terminal/release", params ?? {}) as Promise<ReleaseTerminalResponse>;
   }
-  const req = params as unknown as ReleaseTerminalRequest;
-  if (!req.terminalId) {
-    throwAcpError(-32602, "Invalid params: terminalId is required");
-  }
-  const terminal = activeTerminals.get(req.terminalId);
-  if (!terminal) {
-    throwAcpError(-32002, `Terminal not found: ${req.terminalId}`);
-  }
+  const { terminalId, terminal } = requireTerminal(params);
   if (!terminal.exited) {
     terminal.proc.kill("SIGTERM");
   }
-  activeTerminals.delete(req.terminalId);
+  activeTerminals.delete(terminalId);
   return {};
 }
 
+/**
+ * Handle the `terminal/kill` client method — kills a terminal process and removes it.
+ * @param params - Parameters with `terminalId`
+ * @returns An empty `KillTerminalResponse`
+ * @throws {Error} ACP error -32602 if `terminalId` is missing
+ * @throws {Error} ACP error -32002 if the terminal is not found
+ */
 export async function handleTerminalKill(
   params: Record<string, unknown> | undefined,
 ): Promise<KillTerminalResponse> {
@@ -202,17 +233,10 @@ export async function handleTerminalKill(
   if (clientCaps?.terminal === true) {
     return sendClientRequest("terminal/kill", params ?? {}) as Promise<KillTerminalResponse>;
   }
-  const req = params as unknown as KillTerminalRequest;
-  if (!req.terminalId) {
-    throwAcpError(-32602, "Invalid params: terminalId is required");
-  }
-  const terminal = activeTerminals.get(req.terminalId);
-  if (!terminal) {
-    throwAcpError(-32002, `Terminal not found: ${req.terminalId}`);
-  }
+  const { terminalId, terminal } = requireTerminal(params);
   if (!terminal.exited) {
     terminal.proc.kill("SIGTERM");
   }
-  activeTerminals.delete(req.terminalId);
+  activeTerminals.delete(terminalId);
   return {};
 }

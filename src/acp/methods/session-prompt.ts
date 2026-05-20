@@ -2,26 +2,29 @@
 // Triggers the pi agent, streams updates, and returns stopReason.
 import { handlePiEvent } from "../../pi/event-translator.js";
 import {
-  getSession,
+  requireSession,
   setPromptRequestId,
   setSessionCancelling,
   isSessionCancelling,
 } from "../../pi/session-registry.js";
 import { acpBlocksToPiContent } from "../../utils/content-translation.js";
-import { throwAcpError } from "../../utils/error-codes.js";
-import { requireParams } from "../../utils/param-validation.js";
 import type { PromptRequest, PromptResponse, StopReason } from "../types.js";
 
+/**
+ * Handle the `session/prompt` ACP method — the core agent loop.
+ * Sends the user's prompt to the pi agent, subscribes to events, and streams
+ * ACP session updates until the agent completes or is cancelled.
+ * @param params - The `PromptRequest` with `sessionId` and `prompt` content blocks
+ * @param request - The raw JSON-RPC request (used for its `id` to correlate the response)
+ * @returns A `PromptResponse` with the `stopReason` (e.g. `"end_turn"`, `"cancelled"`)
+ * @throws {Error} ACP error -32602 if `sessionId` or `prompt` is missing
+ * @throws {Error} ACP error -32002 if the session is not found
+ */
 export async function handleSessionPrompt(
   params: Record<string, unknown> | undefined,
   request: { id: number | string | null },
 ): Promise<PromptResponse> {
-  const req = requireParams<PromptRequest>(params, ["sessionId", "prompt"]);
-  const entry = getSession(req.sessionId);
-  if (!entry) {
-    throwAcpError(-32002, `Session not found: ${req.sessionId}`);
-  }
-
+  const { entry, req } = requireSession<PromptRequest>(params, ["sessionId", "prompt"]);
   const { session } = entry;
 
   // Store the request ID so we can resolve it on completion

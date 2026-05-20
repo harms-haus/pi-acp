@@ -135,7 +135,7 @@ describe("protocol", () => {
 
     // Capture the request ID that was sent outbound
     const outgoingCall = mockedWriteOutgoing.mock.calls.at(-1)!;
-    const outgoingMsg = outgoingCall[0] as Record<string, unknown>;
+    const outgoingMsg = outgoingCall[0] as unknown as Record<string, unknown>;
     const id = outgoingMsg.id;
 
     expect(outgoingMsg).toMatchObject({
@@ -155,7 +155,7 @@ describe("protocol", () => {
     const promise = sendClientRequest("test/client_reject", {});
 
     const outgoingCall = mockedWriteOutgoing.mock.calls.at(-1)!;
-    const id = (outgoingCall[0] as Record<string, unknown>).id;
+    const id = (outgoingCall[0] as unknown as Record<string, unknown>).id;
 
     await processMessage(
       JSON.stringify({
@@ -180,5 +180,43 @@ describe("protocol", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // ── 12. Valid JSON-RPC with no method field → invalid request ──────────────
+  it("returns invalid request when method field is missing", async () => {
+    await processMessage(JSON.stringify({ jsonrpc: "2.0", id: 10, params: {} }));
+
+    expect(mockedWriteError).toHaveBeenCalledWith(null, -32600, "Invalid Request");
+  });
+
+  // ── 13. Request with empty method → invalid request ───────────────────────
+  it("returns invalid request for empty method string", async () => {
+    await processMessage(JSON.stringify({ jsonrpc: "2.0", id: 11, method: "", params: {} }));
+
+    // Empty string is falsy, so handleRequest treats it as invalid request
+    expect(mockedWriteError).toHaveBeenCalledWith(11, -32600, "Invalid Request");
+  });
+
+  // ── 14. Notification handler error logs but does not write error ───────────
+  it("logs notification handler error without writing error response", async () => {
+    const handler = vi.fn().mockImplementation(() => {
+      throw new Error("notification failed");
+    });
+    registerHandler("test/notification_error", handler);
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await processMessage(
+      JSON.stringify({ jsonrpc: "2.0", method: "test/notification_error" }),
+    );
+
+    expect(handler).toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Notification handler error for test/notification_error:",
+      expect.any(Error),
+    );
+    // No error response written for notifications
+    expect(mockedWriteError).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });

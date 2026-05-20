@@ -1,7 +1,5 @@
 // session/set_config_option handler — sets a session config option.
-import { getSession } from "../../pi/session-registry.js";
-import { throwAcpError } from "../../utils/error-codes.js";
-import { requireParams } from "../../utils/param-validation.js";
+import { requireSession } from "../../pi/session-registry.js";
 import type {
   SetSessionConfigOptionRequest,
   SetSessionConfigOptionResponse,
@@ -11,20 +9,23 @@ import type {
 // Store config options per session
 const configOptions = new Map<string, SessionConfigOption[]>();
 
+/**
+ * Handle the `session/set_config_option` ACP method — sets a config option on a session.
+ * Initializes default config options on first call per session and updates the requested option.
+ * @param params - The `SetSessionConfigOptionRequest` with `sessionId`, `configId`, and `value`
+ * @returns The updated list of `SessionConfigOption` objects
+ * @throws {Error} ACP error -32602 if `sessionId`, `configId`, or `value` is missing
+ * @throws {Error} ACP error -32002 if the session is not found
+ */
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function handleSessionSetConfigOption(
   params: Record<string, unknown> | undefined,
 ): Promise<SetSessionConfigOptionResponse> {
-  const req = requireParams<SetSessionConfigOptionRequest>(params, [
+  const { req } = requireSession<SetSessionConfigOptionRequest>(params, [
     "sessionId",
     "configId",
     "value",
   ]);
-
-  const entry = getSession(req.sessionId);
-  if (!entry) {
-    throwAcpError(-32002, `Session not found: ${req.sessionId}`);
-  }
 
   // Get or create config options for this session
   let opts = configOptions.get(req.sessionId);
@@ -66,4 +67,9 @@ export async function handleSessionSetConfigOption(
   }
 
   return { configOptions: opts };
+}
+
+/** Clean up config options for a closed session to prevent memory leaks. */
+export function cleanupConfigOptions(sessionId: string): void {
+  configOptions.delete(sessionId);
 }

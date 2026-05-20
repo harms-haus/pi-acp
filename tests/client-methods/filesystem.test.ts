@@ -133,6 +133,25 @@ describe("handleFsReadTextFile", () => {
 
     expect(result).toEqual({ content: "line1\nline2" });
   });
+
+  it("throws when reading a symlink that escapes the session directory", async () => {
+    const { symlinkSync, mkdirSync } = await import("node:fs");
+    // Create a subdirectory and a symlink pointing outside the sandbox
+    const subDir = join(tempDir, "sub");
+    mkdirSync(subDir, { recursive: true });
+    const linkPath = join(subDir, "escape_link");
+    symlinkSync("/etc/passwd", linkPath);
+
+    await expect(
+      handleFsReadTextFile({ path: linkPath, sessionId: "sess_1" }),
+    ).rejects.toThrow("Path escapes session directory");
+  });
+
+  it("throws ENOENT when reading a non-existent file", async () => {
+    await expect(
+      handleFsReadTextFile({ path: "nonexistent_file.txt", sessionId: "sess_1" }),
+    ).rejects.toThrow();
+  });
 });
 
 describe("handleFsWriteTextFile", () => {

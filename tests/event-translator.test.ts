@@ -56,7 +56,7 @@ const SESSION_ID = "sess_test_123";
 /** Shorthand to extract all writeNotification calls as parsed params. */
 function getNotifications(): { method: string; params: unknown }[] {
   return (writeNotification as ReturnType<typeof vi.fn>).mock.calls.map(
-    ([method, params]: [string, unknown]) => ({ method, params }),
+    (call: any[]) => ({ method: call[0] as string, params: call[1] }),
   );
 }
 

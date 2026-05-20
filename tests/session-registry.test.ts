@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { AgentSession } from "@earendil-works/pi-coding-agent";
 
 // Session registry uses module-level state (Map + counter).
 // Reset modules so each test gets a fresh registry instance.
@@ -9,7 +10,7 @@ beforeEach(() => {
 // Helper to dynamically import a fresh registry and create a mock session.
 async function freshRegistry() {
   const reg = await import("../src/pi/session-registry.js");
-  const session = { dispose: vi.fn() };
+  const session = { dispose: vi.fn() } as unknown as AgentSession;
   return { reg, session };
 }
 
@@ -65,8 +66,8 @@ describe("session-registry", () => {
   it("listSessions returns all sessions", async () => {
     const { reg } = await freshRegistry();
 
-    const s1 = { dispose: vi.fn() };
-    const s2 = { dispose: vi.fn() };
+    const s1 = { dispose: vi.fn() } as unknown as AgentSession;
+    const s2 = { dispose: vi.fn() } as unknown as AgentSession;
 
     const id1 = reg.registerSession(s1, "/a");
     const id2 = reg.registerSession(s2, "/b");
@@ -89,9 +90,9 @@ describe("session-registry", () => {
   it("listSessions with cwd filter returns only matching sessions", async () => {
     const { reg } = await freshRegistry();
 
-    reg.registerSession({ dispose: vi.fn() }, "/alpha");
-    const idBeta = reg.registerSession({ dispose: vi.fn() }, "/beta");
-    reg.registerSession({ dispose: vi.fn() }, "/gamma");
+    reg.registerSession({ dispose: vi.fn() } as unknown as AgentSession, "/alpha");
+    const idBeta = reg.registerSession({ dispose: vi.fn() } as unknown as AgentSession, "/beta");
+    reg.registerSession({ dispose: vi.fn() } as unknown as AgentSession, "/gamma");
 
     const filtered = reg.listSessions("/beta");
 
@@ -167,8 +168,8 @@ describe("session-registry", () => {
 
     expect(reg.getSessionIds()).toEqual([]);
 
-    const id1 = reg.registerSession({ dispose: vi.fn() }, "/a");
-    const id2 = reg.registerSession({ dispose: vi.fn() }, "/b");
+    const id1 = reg.registerSession({ dispose: vi.fn() } as unknown as AgentSession, "/a");
+    const id2 = reg.registerSession({ dispose: vi.fn() } as unknown as AgentSession, "/b");
 
     const ids = reg.getSessionIds();
     expect(ids).toEqual([id1, id2]);
@@ -176,5 +177,82 @@ describe("session-registry", () => {
     // After removing one
     reg.removeSession(id1);
     expect(reg.getSessionIds()).toEqual([id2]);
+  });
+
+  // ── 13. requireSession validates params and looks up session ─────────────
+  it("requireSession returns entry and typed params for valid session", async () => {
+    const { reg, session } = await freshRegistry();
+
+    const id = reg.registerSession(session, "/tmp");
+
+    const result = reg.requireSession<{ sessionId: string; extra: string }>(
+      { sessionId: id, extra: "value" },
+      ["sessionId", "extra"],
+    );
+
+    expect(result.entry.session).toBe(session);
+    expect(result.req.sessionId).toBe(id);
+    expect(result.req.extra).toBe("value");
+  });
+
+  // ── 14. requireSession throws for missing params ─────────────────────────
+  it("requireSession throws -32602 for missing required key", async () => {
+    const { reg, session } = await freshRegistry();
+
+    reg.registerSession(session, "/tmp");
+
+    expect(() => {
+      reg.requireSession<{ sessionId: string }>(
+        {},
+        ["sessionId"],
+      );
+    }).toThrow(expect.objectContaining({ code: -32602 }));
+  });
+
+  // ── 15. requireSession throws for nonexistent session ─────────────────────
+  it("requireSession throws -32002 for nonexistent session", async () => {
+    const { reg } = await freshRegistry();
+
+    expect(() => {
+      reg.requireSession<{ sessionId: string }>(
+        { sessionId: "no_such_session" },
+        ["sessionId"],
+      );
+    }).toThrow(expect.objectContaining({ code: -32002 }));
+  });
+
+  // ── 16. setTurnId on nonexistent session does nothing ─────────────────────
+  it("setTurnId on nonexistent session does nothing", async () => {
+    const { reg } = await freshRegistry();
+
+    // Should not throw
+    expect(() => {
+      reg.setTurnId("no_such_session", "turn_1");
+    }).not.toThrow();
+  });
+
+  // ── 17. setPromptRequestId on nonexistent session does nothing ───────────
+  it("setPromptRequestId on nonexistent session does nothing", async () => {
+    const { reg } = await freshRegistry();
+
+    expect(() => {
+      reg.setPromptRequestId("no_such_session", 1);
+    }).not.toThrow();
+  });
+
+  // ── 18. getPromptRequestId for nonexistent session returns undefined ─────
+  it("getPromptRequestId returns undefined for nonexistent session", async () => {
+    const { reg } = await freshRegistry();
+
+    expect(reg.getPromptRequestId("no_such_session")).toBeUndefined();
+  });
+
+  // ── 19. setSessionCancelling on nonexistent session does nothing ─────────
+  it("setSessionCancelling on nonexistent session does nothing", async () => {
+    const { reg } = await freshRegistry();
+
+    expect(() => {
+      reg.setSessionCancelling("no_such_session", true);
+    }).not.toThrow();
   });
 });

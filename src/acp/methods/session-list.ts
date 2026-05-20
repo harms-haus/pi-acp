@@ -4,6 +4,14 @@ import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { listSessions } from "../../pi/session-registry.js";
 import type { ListSessionsRequest, ListSessionsResponse } from "../types.js";
 
+const DEFAULT_PAGE_SIZE = 50;
+
+/**
+ * Handle the `session/list` ACP method — lists sessions with cursor-based pagination.
+ * Merges active in-memory sessions with persisted `.jsonl` sessions from disk.
+ * @param params - The `ListSessionsRequest` with optional `cwd` filter and `cursor`
+ * @returns Paginated list of `SessionInfo` objects and an optional `nextCursor`
+ */
 export async function handleSessionList(
   params: Record<string, unknown> | undefined,
 ): Promise<ListSessionsResponse> {
@@ -46,9 +54,15 @@ export async function handleSessionList(
     }
   }
 
-  // Simple cursor-based pagination (return first 50 if no cursor)
-  const limit = 50;
-  const cursor = req.cursor !== null && req.cursor !== undefined ? parseInt(req.cursor, 10) : 0;
+  // Simple cursor-based pagination
+  const limit = DEFAULT_PAGE_SIZE;
+  let cursor = 0;
+  if (req.cursor !== null && req.cursor !== undefined) {
+    const parsed = parseInt(req.cursor, 10);
+    if (!Number.isNaN(parsed) && parsed >= 0) {
+      cursor = parsed;
+    }
+  }
   const slice = all.slice(cursor, cursor + limit);
   const nextCursor = cursor + limit < all.length ? String(cursor + limit) : undefined;
 

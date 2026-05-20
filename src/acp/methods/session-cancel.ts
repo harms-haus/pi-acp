@@ -3,6 +3,11 @@ import { cancelAllPermissions } from "../../pi/acp-extension.js";
 import { getSession, setSessionCancelling } from "../../pi/session-registry.js";
 import type { CancelNotification } from "../types.js";
 
+/**
+ * Handle the `session/cancel` ACP notification — cancels an ongoing prompt turn.
+ * Silently returns if params are invalid or the session is not found (notification semantics).
+ * @param params - The `CancelNotification` with `sessionId`
+ */
 export async function handleSessionCancel(
   params: Record<string, unknown> | undefined,
 ): Promise<void> {

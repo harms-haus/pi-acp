@@ -24,20 +24,17 @@ describe("acp-extension", () => {
     expect(() => cancelAllPermissions()).not.toThrow();
   });
 
-  // ── 3. Permission timeout — pending request times out ─────────────────────
-  it("permission request times out after advancing fake timers", () => {
-    vi.useFakeTimers();
+  // ── 3. tool_call handler is an async function ────────────────────────────
+  it("registered tool_call handler is an async function", () => {
+    const mockOn = vi.fn();
+    const mockPi = { on: mockOn } as unknown as Parameters<typeof acpExtensionFactory>[0];
 
-    try {
-      // Advance timers by 30000ms. Since no pending permissions are in the map,
-      // this verifies the module handles the empty state cleanly under fake timers.
-      cancelAllPermissions();
-      vi.advanceTimersByTime(30_000);
+    acpExtensionFactory(mockPi);
 
-      // No errors or unresolved timer callbacks
-      expect(true).toBe(true);
-    } finally {
-      vi.useRealTimers();
-    }
+    const handler = mockOn.mock.calls[0]?.[1] as (...args: unknown[]) => unknown;
+    expect(typeof handler).toBe("function");
+    // The handler is declared async, so calling it should return a Promise
+    const result = handler({}, {});
+    expect(result).toBeInstanceOf(Promise);
   });
 });

@@ -24,8 +24,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.21.0",
-    "@earendil-works/pi-coding-agent": "*",
-    "typebox": "*"
+    "@earendil-works/pi-coding-agent": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

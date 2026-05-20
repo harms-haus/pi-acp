@@ -13,6 +13,7 @@ import { acpExtensionFactory } from "./acp-extension.js";
 
 export interface CreateAcpSessionOptions {
   cwd: string;
+  sessionPath?: string;
   mcpServers?: {
     name: string;
     command?: string;
@@ -31,7 +32,7 @@ export interface CreateAcpSessionOptions {
 export async function createAcpSession(
   options: CreateAcpSessionOptions,
 ): Promise<{ session: AgentSession; sessionId: string }> {
-  const { cwd } = options;
+  const { cwd, sessionPath } = options;
 
   // Set up auth and model registry
   const authStorage = AuthStorage.create();
@@ -46,8 +47,11 @@ export async function createAcpSession(
   });
   await loader.reload();
 
-  // Create in-memory session manager (ACP manages its own session lifecycle)
-  const sessionManager = SessionManager.inMemory();
+  // Use file-backed session manager when loading from disk, otherwise in-memory
+  const sessionManager =
+    sessionPath !== undefined && sessionPath.length > 0
+      ? SessionManager.open(sessionPath)
+      : SessionManager.inMemory();
 
   const result = await createAgentSession({
     cwd,

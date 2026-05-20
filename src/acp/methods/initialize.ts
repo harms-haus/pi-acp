@@ -5,6 +5,7 @@ import {
   AGENT_NAME,
   AGENT_TITLE,
   AGENT_VERSION,
+  ACP_ERROR_CODES,
   PROTOCOL_VERSION,
   type AgentCapabilities,
   type InitializeRequest,
@@ -13,19 +14,26 @@ import {
 
 export { getClientCapabilities } from "../client-state.js";
 
+/**
+ * Handle the `initialize` ACP method — protocol handshake and capability negotiation.
+ * Validates the client's protocol version, stores capabilities, and returns agent info.
+ * @param params - The `InitializeRequest` with `protocolVersion` and `clientCapabilities`
+ * @returns Agent capabilities, info, and supported auth methods
+ * @throws {Error} ACP error -32602 if `params` is missing or `protocolVersion` is invalid
+ */
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function handleInitialize(
   params: Record<string, unknown> | undefined,
 ): Promise<InitializeResponse> {
   if (!params) {
-    throwAcpError(-32602, "Invalid params: missing protocolVersion");
+    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: missing protocolVersion");
   }
 
   const req = params as unknown as InitializeRequest;
 
   // Validate protocol version
   if (typeof req.protocolVersion !== "number") {
-    throwAcpError(-32602, "Invalid params: protocolVersion must be a number");
+    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: protocolVersion must be a number");
   }
 
   // Store client capabilities for later use
@@ -38,6 +46,7 @@ export async function handleInitialize(
       close: {},
       list: {},
       resume: {},
+      fork: {},
     },
     promptCapabilities: {
       image: true,

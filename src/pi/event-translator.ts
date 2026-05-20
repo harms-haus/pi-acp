@@ -92,19 +92,10 @@ function handleMessageStart(event: MessageStartEvent, sessionId: SessionId): voi
   }
 }
 
-function handleMessageEnd(event: MessageEndEvent, sessionId: SessionId): void {
+function handleMessageEnd(event: MessageEndEvent, _sessionId: SessionId): void {
   if (event.message.role !== "assistant") return;
-  const turnId = getTurnId(sessionId);
-  if (turnId !== undefined) {
-    // Finalize the assistant message — send a last chunk with accumulated content
-    const textContent = piContentToAcpBlocks(event.message.content);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for (const _block of textContent) {
-      // Don't re-send all chunks — just send the final content as part of the message_end
-      // The individual deltas have already been streamed via message_update
-    }
-  }
-  // Turn end detection is handled by agent_end event
+  // Individual deltas have already been streamed via message_update events.
+  // Turn end detection is handled by agent_end event.
 }
 
 function handleToolExecutionStart(event: ToolExecStartEvent, sessionId: SessionId): void {

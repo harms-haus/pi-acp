@@ -1,30 +1,45 @@
 // providers/* handlers (UNSTABLE) — list, set, disable
 import { throwAcpError } from "../../utils/error-codes.js";
-import type {
-  ListProvidersResponse,
-  SetProvidersResponse,
-  DisableProvidersResponse,
+import {
+  ACP_ERROR_CODES,
+  type ListProvidersResponse,
+  type SetProvidersResponse,
+  type DisableProvidersResponse,
 } from "../types.js";
 
-// providers/list (UNSTABLE)
+/**
+ * Handle the `providers/list` ACP method (UNSTABLE) — returns an empty providers list.
+ * @param _params - The method parameters (ignored)
+ * @returns An empty `ListProvidersResponse`
+ */
 export async function handleProvidersList(
   _params: Record<string, unknown> | undefined,
 ): Promise<ListProvidersResponse> {
-  return Promise.resolve({ providers: [] });
+  return { providers: [] };
 }
 
-// providers/set (UNSTABLE)
+/**
+ * Handle the `providers/set` ACP method (UNSTABLE) — not yet implemented.
+ * @param _params - The method parameters (ignored)
+ * @returns Never returns — always throws
+ * @throws {Error} ACP error -32601 (method not found)
+ */
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function handleProvidersSet(
   _params: Record<string, unknown> | undefined,
 ): Promise<SetProvidersResponse> {
-  throwAcpError(-32601, "Method not implemented (UNSTABLE): providers/set");
+  throwAcpError(ACP_ERROR_CODES.METHOD_NOT_FOUND, "Method not implemented (UNSTABLE): providers/set");
 }
 
-// providers/disable (UNSTABLE)
+/**
+ * Handle the `providers/disable` ACP method (UNSTABLE) — not yet implemented.
+ * @param _params - The method parameters (ignored)
+ * @returns Never returns — always throws
+ * @throws {Error} ACP error -32601 (method not found)
+ */
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function handleProvidersDisable(
   _params: Record<string, unknown> | undefined,
 ): Promise<DisableProvidersResponse> {
-  throwAcpError(-32601, "Method not implemented (UNSTABLE): providers/disable");
+  throwAcpError(ACP_ERROR_CODES.METHOD_NOT_FOUND, "Method not implemented (UNSTABLE): providers/disable");
 }

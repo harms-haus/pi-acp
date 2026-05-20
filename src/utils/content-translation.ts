@@ -1,4 +1,11 @@
-// Translate between pi SDK content formats and ACP ContentBlock formats.
+/**
+ * Translate between pi SDK content formats and ACP ContentBlock formats.
+ *
+ * Provides bidirectional conversion for text, image, audio, and resource content,
+ * as well as tool-name-to-ToolKind mapping and human-readable title generation.
+ * @module content-translation
+ */
+
 import {
   toSdkToolKind,
   type ContentBlock,
@@ -36,7 +43,12 @@ function hasCommand(input: unknown): input is ToolInputWithCommand {
   return typeof input === "object" && input !== null && "command" in input;
 }
 
-/** Map pi tool name to ACP ToolKind. */
+/**
+ * Map a pi tool name to the corresponding ACP `ToolKind`.
+ * Unknown tools map to `"other"`. The value is further normalised by `toSdkToolKind`.
+ * @param toolName - The internal pi tool name (e.g. `"read"`, `"bash"`)
+ * @returns The ACP `ToolKind` string
+ */
 export function toolNameToKind(toolName: string): ToolKind {
   let kind: string;
   switch (toolName) {
@@ -69,7 +81,12 @@ export function toolNameToKind(toolName: string): ToolKind {
   return toSdkToolKind(kind) as ToolKind;
 }
 
-/** Map ACP ToolKind to human-readable title. */
+/**
+ * Build a human-readable title for a tool call, appending the file path or command when available.
+ * @param kind - The ACP `ToolKind`
+ * @param input - Optional tool input; if it has a `path` or `command` property it is included in the title
+ * @returns A descriptive string like `"read: /src/index.ts"` or just the `kind`
+ */
 export function kindToTitle(kind: string, input?: unknown): string {
   if (hasPath(input)) {
     return `${kind}: ${String(input.path)}`;
@@ -107,7 +124,12 @@ function convertContentItem(item: unknown): ContentBlock[] {
   }
 }
 
-/** Convert pi message content to ACP ContentBlock[]. */
+/**
+ * Convert pi message content to an array of ACP `ContentBlock` objects.
+ * Handles strings, arrays of pi content items (text, image, thinking), and falls back to JSON.
+ * @param content - The pi SDK message content (string, array, or unknown)
+ * @returns An array of ACP `ContentBlock` objects
+ */
 export function piContentToAcpBlocks(content: unknown): ContentBlock[] {
   if (typeof content === "string") {
     return [{ type: "text", text: content }];
@@ -119,10 +141,15 @@ export function piContentToAcpBlocks(content: unknown): ContentBlock[] {
     }
     return results;
   }
-  return [{ type: "text", text: typeof content === "string" ? content : "" }];
+  return [{ type: "text", text: "" }];
 }
 
-/** Convert ACP ContentBlock[] to pi prompt string or content array. */
+/**
+ * Convert ACP `ContentBlock[]` back to a pi-compatible prompt format.
+ * Returns a plain string when the result is a single text block, otherwise an array of pi content objects.
+ * @param blocks - The ACP `ContentBlock` array from the client
+ * @returns A string (single text) or an array of pi content objects
+ */
 export function acpBlocksToPiContent(
   blocks: ContentBlock[],
 ):
@@ -171,7 +198,13 @@ export function acpBlocksToPiContent(
   )[];
 }
 
-/** Convert pi tool result to ACP ToolCallContent[]. */
+/**
+ * Convert a pi tool result to ACP `ToolCallContent[]`, including diff blocks for edit operations.
+ * @param toolName - The pi tool name (used to decide whether to emit diff content)
+ * @param content - The tool result content
+ * @param details - Optional metadata; for `"edit"` tools, `path`, `newText`, and `oldText` are extracted
+ * @returns An array of `ToolCallContent` objects (content blocks and optional diff)
+ */
 export function piToolResultToAcpContent(
   toolName: string,
   content: unknown,

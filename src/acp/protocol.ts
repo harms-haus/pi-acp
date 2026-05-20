@@ -1,12 +1,14 @@
 // ACP Protocol handler — JSON-RPC 2.0 message router.
 // Routes incoming client requests to method handlers and manages pending client-side requests.
-import type {
-  JsonRpcIncoming,
-  JsonRpcRequest,
-  JsonRpcNotification,
-  JsonRpcErrorObject,
-} from "../acp/types.js";
 import { writeResponse, writeError, writeNotification, writeOutgoing } from "../transport/stdio.js";
+
+import {
+  ACP_ERROR_CODES,
+  type JsonRpcIncoming,
+  type JsonRpcRequest,
+  type JsonRpcNotification,
+  type JsonRpcErrorObject,
+} from "./types.js";
 
 /**
  * Interface for errors with optional code and data properties.
@@ -35,6 +37,8 @@ interface PendingRequest {
   timer: ReturnType<typeof setTimeout>;
 }
 
+const CLIENT_REQUEST_TIMEOUT_MS = 60_000;
+
 const pendingClientRequests = new Map<number | string, PendingRequest>();
 let _nextRequestId = 1;
 
@@ -56,7 +60,7 @@ export function sendClientRequest(
     const timer = setTimeout(() => {
       pendingClientRequests.delete(id);
       reject(new Error(`Client request ${method} timed out`));
-    }, 60000);
+    }, CLIENT_REQUEST_TIMEOUT_MS);
 
     pendingClientRequests.set(id, {
       resolve: (result) => {
@@ -121,12 +125,12 @@ function parseJsonRpc(raw: string): JsonRpcIncoming | null {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (typeof parsed.jsonrpc !== "string" || parsed.jsonrpc !== "2.0") {
-      writeError(null, -32600, "Invalid Request", { raw });
+      writeError(null, ACP_ERROR_CODES.INVALID_REQUEST, "Invalid Request", { raw });
       return null;
     }
     return parsed as unknown as JsonRpcIncoming;
   } catch {
-    writeError(null, -32700, "Parse error", { raw });
+    writeError(null, ACP_ERROR_CODES.PARSE_ERROR, "Parse error", { raw });
     return null;
   }
 }
@@ -161,7 +165,7 @@ export async function processMessage(raw: string): Promise<void> {
 
   // Must be a request or notification
   if (!("method" in msg)) {
-    writeError(null, -32600, "Invalid Request");
+    writeError(null, ACP_ERROR_CODES.INVALID_REQUEST, "Invalid Request");
     return;
   }
 
@@ -200,13 +204,13 @@ async function handleRequest(request: JsonRpcRequest): Promise<void> {
 
   // Handle client response (not a method call)
   if (!method) {
-    writeError(id, -32600, "Invalid Request");
+    writeError(id, ACP_ERROR_CODES.INVALID_REQUEST, "Invalid Request");
     return;
   }
 
   const handler = handlers.get(method);
   if (!handler) {
-    writeError(id, -32601, `Method not found: ${method}`);
+    writeError(id, ACP_ERROR_CODES.METHOD_NOT_FOUND, `Method not found: ${method}`);
     return;
   }
 
@@ -220,7 +224,7 @@ async function handleRequest(request: JsonRpcRequest): Promise<void> {
     } else {
       // Don't leak stack traces — log internally, send sanitized message
       console.error(`[pi-acp] Internal error in ${method}:`, err);
-      writeError(id, -32603, "Internal error");
+      writeError(id, ACP_ERROR_CODES.INTERNAL_ERROR, "Internal error");
     }
   }
 }

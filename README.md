@@ -71,6 +71,8 @@ ACP Client (IDE, editor)
 └─────────────────────────────────┘
 ```
 
+Path validation includes symlink escape prevention via `realpathSync` checks and ancestor directory walking.
+
 ## Project Structure
 
 ```
@@ -113,10 +115,9 @@ src/
 │   ├── index.ts                  # Barrel exports
 │   └── stdio.ts                  # JSONL over stdin/stdout
 ├── utils/
-│   ├── index.ts                  # Barrel exports
 │   ├── content-translation.ts    # pi content ↔ ACP ContentBlock conversion
 │   ├── error-codes.ts            # JSON-RPC error helpers
-│   ├── path-validation.ts        # Path sanitization (prevents traversal)
+│   ├── path-validation.ts        # Path sanitization (prevents traversal + symlink escape)
 │   ├── param-validation.ts      # Shared parameter validation helper
 │   └── turn-id.ts                # Turn ID generation for notification grouping
 
@@ -131,45 +132,49 @@ src/
 ## Supported ACP Methods
 
 ### Baseline (always available)
-| Method | Status |
-|--------|--------|
-| `initialize` | ✅ Implemented |
-| `authenticate` | ✅ No-op (pi doesn't require auth) |
-| `session/new` | ✅ Implemented |
-| `session/prompt` | ✅ Implemented |
-| `session/cancel` | ✅ Implemented |
+
+| Method           | Status                             |
+| ---------------- | ---------------------------------- |
+| `initialize`     | ✅ Implemented                     |
+| `authenticate`   | ✅ No-op (pi doesn't require auth) |
+| `session/new`    | ✅ Implemented                     |
+| `session/prompt` | ✅ Implemented                     |
+| `session/cancel` | ✅ Implemented                     |
 
 ### Optional (capability-gated)
-| Method | Status |
-|--------|--------|
-| `session/load` | ✅ Implemented (with history replay) |
-| `session/resume` | ✅ Implemented |
-| `session/close` | ✅ Implemented |
-| `session/list` | ✅ Implemented (with pagination) |
-| `session/set_mode` | ✅ Implemented |
-| `session/set_config_option` | ✅ Implemented |
+
+| Method                      | Status                               |
+| --------------------------- | ------------------------------------ |
+| `session/load`              | ✅ Implemented (with history replay) |
+| `session/resume`            | ✅ Implemented                       |
+| `session/close`             | ✅ Implemented                       |
+| `session/list`              | ✅ Implemented (with pagination)     |
+| `session/set_mode`          | ✅ Implemented                       |
+| `session/set_config_option` | ✅ Implemented                       |
 
 ### Client-side methods (local fallback)
-| Method | Status |
-|--------|--------|
-| `fs/read_text_file` | ✅ Implemented (with path validation) |
-| `fs/write_text_file` | ✅ Implemented |
-| `terminal/create` | ✅ Implemented |
-| `terminal/output` | ✅ Implemented |
-| `terminal/wait_for_exit` | ✅ Implemented |
-| `terminal/release` | ✅ Implemented |
-| `terminal/kill` | ✅ Implemented |
+
+| Method                   | Status                                |
+| ------------------------ | ------------------------------------- |
+| `fs/read_text_file`      | ✅ Implemented (with path validation) |
+| `fs/write_text_file`     | ✅ Implemented                        |
+| `terminal/create`        | ✅ Implemented                        |
+| `terminal/output`        | ✅ Implemented                        |
+| `terminal/wait_for_exit` | ✅ Implemented                        |
+| `terminal/release`       | ✅ Implemented                        |
+| `terminal/kill`          | ✅ Implemented                        |
 
 ### UNSTABLE
-| Method | Status |
-|--------|--------|
-| `session/fork` | ⚠️ Stub (not implemented) |
-| `session/set_model` | ⚠️ Stub (not implemented) |
-| `providers/list` | ✅ Returns empty list |
-| `providers/set` | ⚠️ Stub (not implemented) |
-| `providers/disable` | ⚠️ Stub (not implemented) |
-| `logout` | ⚠️ Stub (not implemented) |
-| `nes/*` | ⚠️ Stubs (not implemented) |
+
+| Method              | Status                                       |
+| ------------------- | -------------------------------------------- |
+| `session/fork`      | ⚠️ Capability advertised but not implemented |
+| `session/set_model` | ⚠️ Stub (not implemented)                    |
+| `providers/list`    | ✅ Returns empty list                        |
+| `providers/set`     | ⚠️ Stub (not implemented)                    |
+| `providers/disable` | ⚠️ Stub (not implemented)                    |
+| `logout`            | ⚠️ Stub (not implemented)                    |
+| `nes/*`             | ⚠️ Stubs (not implemented)                   |
 
 ## Development
 

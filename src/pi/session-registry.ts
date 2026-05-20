@@ -1,7 +1,9 @@
 // Session registry — maps ACP session IDs to pi AgentSession instances.
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 
-import type { SessionInfo } from "../acp/types.js";
+import { ACP_ERROR_CODES, type SessionInfo } from "../acp/types.js";
+import { throwAcpError } from "../utils/error-codes.js";
+import { requireParams } from "../utils/param-validation.js";
 
 interface SessionEntry {
   session: AgentSession;
@@ -94,4 +96,30 @@ export function isSessionCancelling(sessionId: string): boolean {
 /** Get all session IDs. */
 export function getSessionIds(): string[] {
   return Array.from(sessions.keys());
+}
+
+/**
+ * Validate params and look up session in one call.
+ *
+ * Uses `requireParams` to ensure all `requiredKeys` are present and `sessionId` is among them,
+ * then retrieves the session from the registry.
+ *
+ * @typeParam T - The expected params type (must include `sessionId`)
+ * @param params - The raw params from the JSON-RPC request
+ * @param requiredKeys - Required property names (must include `"sessionId"`)
+ * @returns The session entry and typed params
+ * @throws {Error} ACP error -32602 if a required key is missing
+ * @throws {Error} ACP error -32002 if the session is not found
+ */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+export function requireSession<T extends { sessionId: string }>(
+  params: unknown,
+  requiredKeys: string[],
+): { entry: SessionEntry; req: T } {
+  const req = requireParams<T>(params, requiredKeys);
+  const entry = sessions.get(req.sessionId);
+  if (!entry) {
+    throwAcpError(ACP_ERROR_CODES.RESOURCE_NOT_FOUND, `Session not found: ${req.sessionId}`);
+  }
+  return { entry, req };
 }

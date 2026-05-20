@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-import { generateTurnId, extractTurnIdFromMessage } from "../../src/utils/turn-id.js";
+import { generateTurnId } from "../../src/utils/turn-id.js";
 
 describe("generateTurnId", () => {
   it("returns a string", () => {
@@ -19,22 +19,5 @@ describe("generateTurnId", () => {
   it("format includes timestamp and counter", () => {
     const id = generateTurnId();
     expect(id).toMatch(/^turn-\d+-\d+$/);
-  });
-});
-
-describe("extractTurnIdFromMessage", () => {
-  it("returns a string with replay- prefix", () => {
-    const result = extractTurnIdFromMessage("msg-123");
-    expect(result).toMatch(/^replay-/);
-  });
-
-  it("includes the entryId in the result", () => {
-    const result = extractTurnIdFromMessage("msg-456");
-    expect(result).toBe("replay-msg-456");
-  });
-
-  it("handles empty entryId", () => {
-    const result = extractTurnIdFromMessage("");
-    expect(result).toBe("replay-");
   });
 });

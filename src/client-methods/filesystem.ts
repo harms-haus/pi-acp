@@ -5,16 +5,26 @@ import { dirname } from "node:path";
 
 import { getClientCapabilities } from "../acp/client-state.js";
 import { sendClientRequest } from "../acp/protocol.js";
-import type {
-  ReadTextFileRequest,
-  ReadTextFileResponse,
-  WriteTextFileRequest,
-  WriteTextFileResponse,
+import {
+  ACP_ERROR_CODES,
+  type ReadTextFileRequest,
+  type ReadTextFileResponse,
+  type WriteTextFileRequest,
+  type WriteTextFileResponse,
 } from "../acp/types.js";
 import { getSession } from "../pi/session-registry.js";
 import { throwAcpError } from "../utils/error-codes.js";
-import { resolveAndValidatePath } from "../utils/path-validation.js";
+import { resolveAndValidatePath, assertWithinSandbox } from "../utils/path-validation.js";
 
+/**
+ * Handle the `fs/read_text_file` client method — reads a text file from the local filesystem.
+ * Delegates to the ACP client if it advertises `fs.readTextFile` capability;
+ * otherwise reads locally with path-traversal protection.
+ * @param params - The `ReadTextFileRequest` with `path`, optional `sessionId`, `line`, and `limit`
+ * @returns The file `content` as a string
+ * @throws {Error} ACP error -32602 if `path` is missing
+ * @throws {Error} ACP error -32002 if the path escapes the session sandbox (including via symlinks)
+ */
 export async function handleFsReadTextFile(
   params: Record<string, unknown> | undefined,
 ): Promise<ReadTextFileResponse> {
@@ -24,7 +34,7 @@ export async function handleFsReadTextFile(
   }
   const req = params as unknown as ReadTextFileRequest;
   if (!req.path) {
-    throwAcpError(-32602, "Invalid params: path is required");
+    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: path is required");
   }
   // Get session cwd for path validation
   const session = getSession(req.sessionId);
@@ -34,9 +44,7 @@ export async function handleFsReadTextFile(
   // Also resolve realpath to catch symlinks escaping the sandbox
   const realPath = realpathSync(safePath);
   const realCwd = realpathSync(cwd);
-  if (!realPath.startsWith(realCwd + "/") && realPath !== realCwd) {
-    throwAcpError(-32002, `Path escapes session directory: ${req.path}`);
-  }
+  assertWithinSandbox(realPath, realCwd, req.path);
   let content = readFileSync(realPath, "utf8");
   // Apply line/limit if specified
   if (typeof req.line === "number" || typeof req.limit === "number") {
@@ -48,6 +56,42 @@ export async function handleFsReadTextFile(
   return { content };
 }
 
+/**
+ * Walk upward from `dir` to find the nearest existing ancestor and validate its realpath
+ * is within the session sandbox. Used when the immediate parent doesn't exist yet.
+ * @throws {Error} ACP error -32002 if the ancestor escapes the sandbox
+ */
+function validateAncestorWithinSandbox(dir: string, cwd: string, requestedPath: string): void {
+  let checkDir = dirname(dir);
+  while (checkDir !== dirname(checkDir)) {
+    try {
+      const realAncestor = realpathSync(checkDir);
+      const realCwd = realpathSync(cwd);
+      assertWithinSandbox(realAncestor, realCwd, requestedPath);
+      return; // Safe — ancestor is within sandbox
+    } catch (innerErr: unknown) {
+      if (
+        innerErr instanceof Error &&
+        "code" in innerErr &&
+        (innerErr as NodeJS.ErrnoException).code === "ENOENT"
+      ) {
+        checkDir = dirname(checkDir);
+      } else {
+        throw innerErr;
+      }
+    }
+  }
+}
+
+/**
+ * Handle the `fs/write_text_file` client method — writes a text file to the local filesystem.
+ * Delegates to the ACP client if it advertises `fs.writeTextFile` capability;
+ * otherwise writes locally with path-traversal protection and auto-creates parent directories.
+ * @param params - The `WriteTextFileRequest` with `path`, `content`, and optional `sessionId`
+ * @returns An empty `WriteTextFileResponse`
+ * @throws {Error} ACP error -32602 if `path` or `content` is missing
+ * @throws {Error} ACP error -32002 if the path escapes the session sandbox (including via symlinks)
+ */
 export async function handleFsWriteTextFile(
   params: Record<string, unknown> | undefined,
 ): Promise<WriteTextFileResponse> {
@@ -57,7 +101,7 @@ export async function handleFsWriteTextFile(
   }
   const req = params as unknown as WriteTextFileRequest;
   if (!req.path || typeof req.content !== "string") {
-    throwAcpError(-32602, "Invalid params: path and content are required");
+    throwAcpError(ACP_ERROR_CODES.INVALID_PARAMS, "Invalid params: path and content are required");
   }
   // Get session cwd for path validation
   const session = getSession(req.sessionId);
@@ -69,14 +113,11 @@ export async function handleFsWriteTextFile(
   try {
     const realParent = realpathSync(parentDir);
     const realCwd = realpathSync(cwd);
-    if (!realParent.startsWith(realCwd + "/") && realParent !== realCwd) {
-      throwAcpError(-32002, `Path escapes session directory: ${req.path}`);
-    }
+    assertWithinSandbox(realParent, realCwd, req.path);
   } catch (err: unknown) {
-    // If parent doesn't exist yet, check further up
     if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-      // Parent dir doesn't exist yet — resolveAndValidatePath already ensures lexical safety
-      // The mkdir will create it within bounds
+      // Walk up to find existing ancestor and validate its realpath
+      validateAncestorWithinSandbox(parentDir, cwd, req.path);
     } else {
       throw err;
     }

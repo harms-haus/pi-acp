@@ -1,22 +1,16 @@
 // session/load handler — loads an existing session and replays history.
-import {
-  SessionManager,
-  AuthStorage,
-  ModelRegistry,
-  createAgentSession,
-  DefaultResourceLoader,
-  getAgentDir,
-} from "@earendil-works/pi-coding-agent";
+import { realpathSync } from "node:fs";
 
-import { acpExtensionFactory } from "../../pi/acp-extension.js";
+import type { SessionManager } from "@earendil-works/pi-coding-agent";
+
+import { createAcpSession } from "../../pi/sdk-factory.js";
 import { registerSession, getSession } from "../../pi/session-registry.js";
 import { writeNotification } from "../../transport/stdio.js";
 import { piContentToAcpBlocks } from "../../utils/content-translation.js";
 import { throwAcpError } from "../../utils/error-codes.js";
 import { requireParams } from "../../utils/param-validation.js";
-import { resolveAndValidatePath } from "../../utils/path-validation.js";
-import { extractTurnIdFromMessage } from "../../utils/turn-id.js";
-import { CLIENT_METHODS, type LoadSessionRequest, type LoadSessionResponse } from "../types.js";
+import { resolveAndValidatePath, assertWithinSandbox } from "../../utils/path-validation.js";
+import { ACP_ERROR_CODES, CLIENT_METHODS, type LoadSessionRequest, type LoadSessionResponse } from "../types.js";
 
 /**
  * Interface for pi SDK session entries.
@@ -39,6 +33,15 @@ interface PiMessageEntry {
   )[];
 }
 
+/**
+ * Handle the `session/load` ACP method — loads an existing session and replays history.
+ * If the session is already active in memory, replays its history directly.
+ * Otherwise, loads from a `.jsonl` session file within the session's `cwd`.
+ * @param params - The `LoadSessionRequest` with `sessionId` and `cwd`
+ * @returns An empty `LoadSessionResponse` (history is streamed via notifications)
+ * @throws {Error} ACP error -32602 if `sessionId` or `cwd` is missing
+ * @throws {Error} ACP error -32002 if the session file cannot be found
+ */
 export async function handleSessionLoad(
   params: Record<string, unknown> | undefined,
 ): Promise<LoadSessionResponse> {
@@ -58,35 +61,24 @@ export async function handleSessionLoad(
   if (req.sessionId.endsWith(".jsonl") || req.sessionId.includes("/")) {
     // Validate path is within cwd to prevent arbitrary file read
     sessionPath = resolveAndValidatePath(req.sessionId, req.cwd);
+    // Also verify realpath to catch symlink escapes
+    const realPath = realpathSync(sessionPath);
+    const realCwd = realpathSync(req.cwd);
+    assertWithinSandbox(realPath, realCwd, req.sessionId);
   }
 
   if (sessionPath === undefined) {
-    throwAcpError(-32002, `Session not found: ${req.sessionId}`);
+    throwAcpError(ACP_ERROR_CODES.RESOURCE_NOT_FOUND, `Session not found: ${req.sessionId}`);
   }
 
-  const sm = SessionManager.open(sessionPath);
-  const authStorage = AuthStorage.create();
-  const modelRegistry = ModelRegistry.create(authStorage);
-  const agentDir = getAgentDir();
-  const loader = new DefaultResourceLoader({
+  const { session, sessionId: acpSessionId } = await createAcpSession({
     cwd: req.cwd,
-    agentDir,
-    extensionFactories: [acpExtensionFactory],
+    sessionPath,
   });
-  await loader.reload();
-
-  const result = await createAgentSession({
-    cwd: req.cwd,
-    agentDir,
-    authStorage,
-    modelRegistry,
-    resourceLoader: loader,
-    sessionManager: sm,
-  });
-
-  const acpSessionId = registerSession(result.session, req.cwd);
+  registerSession(session, req.cwd);
 
   // Replay history via session/update notifications
+  const sm = session.sessionManager;
   replayHistory(sm, acpSessionId);
 
   return {};
@@ -98,7 +90,6 @@ function replayHistory(sm: SessionManager, sessionId: string): void {
   for (const entry of entries) {
     if (entry.type !== "message") continue;
 
-    void extractTurnIdFromMessage(entry.id);
     const msgEntry = entry as PiMessageEntry;
     const msg = msgEntry.message;
     const role = msg.role;
@@ -146,7 +137,7 @@ function replayHistory(sm: SessionManager, sessionId: string): void {
                   status: "completed" as const,
                 }
               : {
-                  toolCallId: tc.id ?? tc,
+                  toolCallId: tc.id ?? "unknown",
                   title: tc.name ?? "Tool call",
                   kind: tc.kind,
                   status: "completed" as const,

@@ -6,11 +6,3 @@ export function generateTurnId(): string {
   _counter++;
   return `turn-${String(Date.now())}-${String(_counter)}`;
 }
-
-/**
- * Extract or generate a turn ID for a message entry during session/load replay.
- * Uses the entry's id as the stable identifier.
- */
-export function extractTurnIdFromMessage(entryId: string): string {
-  return `replay-${entryId}`;
-}
